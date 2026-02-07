@@ -1,0 +1,451 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import { Button } from '@/components/ui/Button';
+import { updateProfile, verifyDeletionPassword as verifyCurrentPassword } from '@/lib/actions/user';
+import { User, Mail, Lock, ShieldAlert, CheckCircle2, Loader2, Settings, Trash2, Pencil, Check, X as CloseIcon, Eye, EyeOff } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { motion } from 'framer-motion';
+import DeleteAccountModal from '@/components/DeleteAccountModal';
+import ConfirmModal from '@/components/ConfirmModal';
+
+export default function ProfilePage() {
+    const { data: session, status } = useSession();
+    const [name, setName] = useState('');
+    const [password, setPassword] = useState('');
+    const [oldPassword, setOldPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [success, setSuccess] = useState('');
+    const [error, setError] = useState('');
+    const [oldPasswordError, setOldPasswordError] = useState('');
+    const [newPasswordError, setNewPasswordError] = useState('');
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [mounted, setMounted] = useState(false);
+
+    // Section editing states
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [isEditingPassword, setIsEditingPassword] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [isValidating, setIsValidating] = useState(false);
+    const [showOldPassword, setShowOldPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+        if (session?.user?.name) setName(session.user.name);
+    }, [session]);
+
+    const validatePassword = (pass: string) => {
+        const hasUpper = /[A-Z]/.test(pass);
+        const hasLower = /[a-z]/.test(pass);
+        const hasNumber = /[0-9]/.test(pass);
+        const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(pass);
+        return pass.length >= 8 && hasUpper && hasLower && hasNumber && hasSpecial;
+    };
+
+    if (status === 'loading') return null;
+    if (!session) return <div className="min-h-screen bg-black flex items-center justify-center text-white">Redirecting...</div>;
+
+    const handlePreValidation = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSuccess('');
+        setError('');
+        setOldPasswordError('');
+        setNewPasswordError('');
+        setIsValidating(true);
+
+        let hasError = false;
+
+        if (isEditingName && !name.trim()) {
+            setError('Full name is required.');
+            hasError = true;
+        }
+
+        if (isEditingPassword) {
+            if (!oldPassword) {
+                setOldPasswordError('Current password is required to change password.');
+                hasError = true;
+            }
+            if (!password) {
+                setNewPasswordError('New password is required.');
+                hasError = true;
+            } else if (!validatePassword(password)) {
+                setNewPasswordError('Password must be 8+ chars with uppercase, lowercase, number, and special char.');
+                hasError = true;
+                setPassword('');
+            }
+
+            // Verify current password on server BEFORE showing modal
+            if (!hasError && oldPassword) {
+                try {
+                    const result = await verifyCurrentPassword(oldPassword);
+                    if (!result.success) {
+                        setOldPasswordError(result.error || 'Incorrect current password');
+                        setOldPassword('');
+                        hasError = true;
+                    }
+                } catch (err) {
+                    setOldPasswordError('Verification failed. Please try again.');
+                    hasError = true;
+                }
+            }
+        }
+
+        setIsValidating(false);
+        if (!hasError) {
+            setShowConfirmModal(true);
+        }
+    };
+
+    const handleUpdate = async () => {
+        // Clear previous state
+        setSuccess('');
+        setError('');
+        setOldPasswordError('');
+        setNewPasswordError('');
+
+        if (isEditingPassword && !validatePassword(password)) {
+            setNewPasswordError('Password must be 8+ chars with uppercase, lowercase, number, and special char.');
+            setPassword(''); // Clear new password as requested
+            setShowConfirmModal(false);
+            return;
+        }
+
+        setLoading(true);
+        setShowConfirmModal(false);
+
+        try {
+            await updateProfile({
+                name: isEditingName ? name : undefined,
+                password: isEditingPassword ? password : undefined,
+                oldPassword: isEditingPassword ? oldPassword : undefined
+            });
+            setSuccess('Profile updated successfully!');
+            setPassword('');
+            setOldPassword('');
+            setIsEditingName(false);
+            setIsEditingPassword(false);
+        } catch (err: any) {
+            const msg = err.message || 'Update failed';
+
+            // Targeted error handling
+            if (msg.toLowerCase().includes('current password')) {
+                setOldPasswordError(msg);
+                setOldPassword(''); // Only clear current password
+            } else if (isEditingPassword) {
+                setNewPasswordError(msg);
+                setPassword(''); // Clear new password for other password errors
+            } else {
+                setError(msg); // General error (e.g. name update failure)
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <main className="min-h-screen bg-[#050505] text-white flex flex-col">
+            <Header />
+
+            <div className="flex-grow max-w-5xl mx-auto w-full px-6 py-8 lg:py-10">
+                <header className="space-y-2 mb-10">
+                    <div className="flex items-center gap-3 text-blue-500 font-black uppercase tracking-[0.3em] text-[10px] mb-2">
+                        <Settings className="w-3 h-3" /> Account Settings
+                    </div>
+                    <h1 className="text-5xl font-black tracking-tighter">Your Profile</h1>
+                    <p className="text-gray-400">Manage your private information and security.</p>
+                </header>
+
+                <div className="grid lg:grid-cols-[1fr_350px] gap-12 items-start">
+                    {/* Main Settings Area */}
+                    <div className="space-y-12">
+
+                        <form onSubmit={handlePreValidation} className="space-y-8">
+                            <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-8 backdrop-blur-md space-y-6">
+                                <div className="grid md:grid-cols-2 gap-6">
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between pl-1">
+                                            <label htmlFor="fullName" className="text-[10px] font-black uppercase text-gray-500 tracking-widest">Full Name</label>
+                                            {!isEditingName ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsEditingName(true)}
+                                                    className="text-[10px] font-black uppercase text-blue-500 hover:text-blue-400 flex items-center gap-1 transition-colors"
+                                                >
+                                                    <Pencil className="w-3 h-3" /> Edit
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setIsEditingName(false); setName(session?.user?.name || ''); }}
+                                                    className="text-[10px] font-black uppercase text-red-500 hover:text-red-400 flex items-center gap-1 transition-colors"
+                                                >
+                                                    <CloseIcon className="w-3 h-3" /> Cancel
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="relative">
+                                            <input
+                                                id="fullName"
+                                                name="fullName"
+                                                type="text"
+                                                value={name}
+                                                disabled={!isEditingName}
+                                                onChange={(e) => setName(e.target.value)}
+                                                className={`w-full bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl px-6 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium ${!isEditingName ? 'opacity-50 cursor-not-allowed' : 'opacity-100'}`}
+                                                placeholder="Full Name"
+                                            />
+                                            <User className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between pl-1">
+                                            <label htmlFor="emailAddress" className="text-[10px] font-black uppercase text-gray-500 tracking-widest">Email Address</label>
+                                            <span className="text-[10px] font-black uppercase text-gray-600 flex items-center gap-1">
+                                                Read Only
+                                            </span>
+                                        </div>
+                                        <div className="relative opacity-50">
+                                            <input
+                                                id="emailAddress"
+                                                name="email"
+                                                type="email"
+                                                value={session.user.email || ''}
+                                                disabled
+                                                className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-sm font-medium cursor-not-allowed"
+                                            />
+                                            <Mail className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-700" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3 pt-3 border-t border-white/5">
+                                    <div className="flex items-center justify-between pl-1">
+                                        <label htmlFor="newPassword" className="text-[10px] font-black uppercase text-gray-500 tracking-widest">Update Password</label>
+                                        {!isEditingPassword ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => { setIsEditingPassword(true); setPassword(''); setOldPassword(''); }}
+                                                className="text-[10px] font-black uppercase text-blue-500 hover:text-blue-400 flex items-center gap-1 transition-colors"
+                                            >
+                                                <Pencil className="w-3 h-3" /> Edit
+                                            </button>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={() => { setIsEditingPassword(false); setPassword(''); setOldPassword(''); }}
+                                                className="text-[10px] font-black uppercase text-red-500 hover:text-red-400 flex items-center gap-1 transition-colors"
+                                            >
+                                                <CloseIcon className="w-3 h-3" /> Cancel
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        {isEditingPassword && (
+                                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                <label htmlFor="oldPassword" className="text-[9px] font-bold text-gray-500 uppercase tracking-widest pl-1">Current Password Required</label>
+                                                <div className="relative">
+                                                    <input
+                                                        id="oldPassword"
+                                                        name="oldPassword"
+                                                        type={showOldPassword ? "text" : "password"}
+                                                        value={oldPassword}
+                                                        autoComplete="off"
+                                                        data-lpignore="true"
+                                                        autoFocus
+                                                        onChange={(e) => setOldPassword(e.target.value)}
+                                                        className="w-full bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl px-6 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium pr-12"
+                                                        placeholder="Enter current password"
+                                                        required
+                                                    />
+                                                    <Lock className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowOldPassword(!showOldPassword)}
+                                                        className="absolute right-12 top-1/2 -translate-y-1/2 text-gray-500 hover:text-blue-500 transition-colors"
+                                                    >
+                                                        {showOldPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                    </button>
+                                                </div>
+                                                {oldPasswordError && (
+                                                    <div className="text-red-500 text-[10px] font-black uppercase tracking-widest pl-1 mt-1 animate-in fade-in slide-in-from-top-1">
+                                                        {oldPasswordError}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        <div className="space-y-2">
+                                            {isEditingPassword && <label htmlFor="newPassword" className="text-[9px] font-bold text-gray-500 uppercase tracking-widest pl-1">New Password</label>}
+                                            <div className="relative">
+                                                <input
+                                                    id="newPassword"
+                                                    name="newPassword"
+                                                    type={showNewPassword ? "text" : "password"}
+                                                    value={password}
+                                                    autoComplete="new-password"
+                                                    disabled={!isEditingPassword}
+                                                    onChange={(e) => setPassword(e.target.value)}
+                                                    className={`w-full bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl px-6 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium pr-12 ${!isEditingPassword ? 'opacity-50 cursor-not-allowed' : 'opacity-100'}`}
+                                                    placeholder={isEditingPassword ? "New Password" : "••••••••"}
+                                                    required={isEditingPassword}
+                                                />
+                                                <Lock className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
+                                                {isEditingPassword && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowNewPassword(!showNewPassword)}
+                                                        className="absolute right-12 top-1/2 -translate-y-1/2 text-gray-500 hover:text-blue-500 transition-colors"
+                                                    >
+                                                        {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {newPasswordError && (
+                                                <div className="text-red-500 text-[10px] font-black uppercase tracking-widest pl-1 py-1 animate-in fade-in slide-in-from-top-1">
+                                                    {newPasswordError}
+                                                </div>
+                                            )}
+                                            {isEditingPassword && password && (
+                                                <div className="space-y-3 mt-3 px-1">
+                                                    <div className="flex gap-1.5">
+                                                        {[1, 2, 3, 4].map((step) => {
+                                                            const criteriaMet = [
+                                                                password.length >= 8,
+                                                                /[A-Z]/.test(password),
+                                                                /[a-z]/.test(password),
+                                                                /[0-9]/.test(password),
+                                                                /[!@#$%^&*(),.?":{}|<>]/.test(password)
+                                                            ].filter(Boolean).length;
+
+                                                            let isActive = false;
+                                                            if (step === 1 && criteriaMet >= 1) isActive = true;
+                                                            if (step === 2 && criteriaMet >= 3) isActive = true;
+                                                            if (step === 3 && criteriaMet >= 4) isActive = true;
+                                                            if (step === 4 && criteriaMet >= 5) isActive = true;
+
+                                                            let colorClass = 'bg-white/10';
+                                                            if (isActive) {
+                                                                if (criteriaMet <= 2) colorClass = 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]';
+                                                                else if (criteriaMet === 3) colorClass = 'bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.5)]';
+                                                                else if (criteriaMet === 4) colorClass = 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]';
+                                                                else colorClass = 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]';
+                                                            }
+
+                                                            return (
+                                                                <div
+                                                                    key={step}
+                                                                    className={`h-1 flex-1 rounded-full transition-all duration-500 ${colorClass}`}
+                                                                />
+                                                            );
+                                                        })}
+                                                    </div>
+
+                                                    <div className="flex justify-between items-center">
+                                                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-500">Security Strength</p>
+                                                        {(() => {
+                                                            const criteriaMet = [
+                                                                password.length >= 8,
+                                                                /[A-Z]/.test(password),
+                                                                /[a-z]/.test(password),
+                                                                /[0-9]/.test(password),
+                                                                /[!@#$%^&*(),.?":{}|<>]/.test(password)
+                                                            ].filter(Boolean).length;
+
+                                                            let label = 'Weak';
+                                                            let color = 'text-red-500';
+                                                            if (criteriaMet >= 5) { label = 'Strong'; color = 'text-green-500'; }
+                                                            else if (criteriaMet >= 4) { label = 'Good'; color = 'text-blue-500'; }
+                                                            else if (criteriaMet >= 3) { label = 'Moderate'; color = 'text-yellow-500'; }
+                                                            else if (criteriaMet >= 2) { label = 'Weak'; color = 'text-red-500'; }
+
+                                                            return <span className={`text-[9px] font-black uppercase tracking-widest ${color} animate-in fade-in zoom-in-95`}>{label}</span>;
+                                                        })()}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Footer actions inside the main div */}
+                                <div className="flex flex-col items-center gap-2 pt-2 border-t border-white/5">
+                                    <div className="flex flex-col items-center gap-1 text-center">
+                                        {success && <div className="flex items-center gap-2 text-green-500 text-xs font-bold animate-in fade-in slide-in-from-top-2"><CheckCircle2 className="w-4 h-4" /> {success}</div>}
+                                        {error && !isEditingPassword && <div className="text-red-500 text-xs font-bold animate-in fade-in slide-in-from-top-2">{error}</div>}
+                                    </div>
+                                    {(isEditingName || isEditingPassword) && (
+                                        <Button
+                                            type="submit"
+                                            disabled={loading || isValidating}
+                                            className="px-24 py-3 rounded-xl bg-white text-black font-black uppercase tracking-widest hover:bg-gray-200 shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 text-[10px]"
+                                        >
+                                            {(loading || isValidating) ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4" /> Save Changes</>}
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    {/* Sidebar / Danger Zone */}
+                    <div className="space-y-8">
+                        <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-8 backdrop-blur-md">
+                            <h3 className="text-lg font-black tracking-tight mb-4">Account Stats</h3>
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center py-3 border-b border-white/5">
+                                    <span className="text-gray-500 text-xs font-bold uppercase tracking-widest">Status</span>
+                                    <span className="text-[10px] font-black bg-blue-500/10 text-blue-500 px-3 py-1 rounded-full uppercase">Verified</span>
+                                </div>
+                                <div className="flex justify-between items-center py-3">
+                                    <span className="text-gray-500 text-xs font-bold uppercase tracking-widest">Member Since</span>
+                                    <span className="text-[10px] font-black text-white uppercase">
+                                        {mounted ? (
+                                            (session.user as any).createdAt ?
+                                                new Date((session.user as any).createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) :
+                                                new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                                        ) : '...'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-red-500/5 border border-red-500/20 rounded-[2.5rem] p-8 backdrop-blur-md">
+                            <div className="flex items-center gap-2 text-red-500 font-black uppercase tracking-widest text-[10px] mb-4">
+                                <ShieldAlert className="w-3.5 h-3.5" /> Danger Zone
+                            </div>
+                            <p className="text-gray-500 text-[11px] font-medium leading-relaxed mb-6">Once you delete your account, there is no going back. Please be certain.</p>
+                            <Button
+                                onClick={() => setShowDeleteModal(true)}
+                                variant="outline"
+                                className="w-full border-red-500/20 bg-red-500/5 hover:bg-red-500 hover:text-white text-red-500 rounded-2xl py-6 font-black uppercase tracking-widest text-xs transition-all"
+                            >
+                                <Trash2 className="w-4 h-4 mr-2" /> Delete Account
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <DeleteAccountModal
+                isOpen={showDeleteModal}
+                onClose={() => setShowDeleteModal(false)}
+            />
+
+            <ConfirmModal
+                isOpen={showConfirmModal}
+                onClose={() => setShowConfirmModal(false)}
+                onConfirm={handleUpdate}
+                loading={loading}
+                title="Update Profile?"
+                message={`Are you sure you want to update your ${[isEditingName ? 'name' : '', isEditingPassword ? 'password' : ''].filter(Boolean).join(' and ')}?`}
+            />
+
+            <Footer />
+        </main>
+    );
+}
