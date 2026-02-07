@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Button, buttonVariants } from '@/components/ui/Button';
+import {buttonVariants } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import Header from '@/components/Header';
