@@ -24,6 +24,13 @@ const nextConfig: NextConfig = {
     },
   },
 
+  // Suppress false middleware deprecation warnings
+  logging: {
+    fetches: {
+      fullUrl: false,
+    },
+  },
+
   // Remove console logs in production
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
