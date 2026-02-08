@@ -1,4 +1,4 @@
-# LuxeLaptops - Premium E-commerce Platform
+# Levric - Premium E-commerce Platform
 
 A high-performance, minimalist e-commerce application built with Next.js 15, MongoDB, and Tailwind CSS v4.
 
