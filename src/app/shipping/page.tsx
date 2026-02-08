@@ -27,14 +27,14 @@ export default function ShippingPage() {
                         <section>
                             <h2 className="text-xl font-semibold text-white mb-2">Order Tracking</h2>
                             <p>
-                                Once your order is shipped, you will receive a confirmation email with a tracking number. You can use this number to track your shipment on our courier partner's website.
+                                Once your order is shipped, you will receive a confirmation email with a tracking number. You can use this number to track your shipment on our courier partners website.
                             </p>
                         </section>
 
                         <section>
                             <h2 className="text-xl font-semibold text-white mb-2">Damaged Orders</h2>
                             <p>
-                                If your order arrives damaged, please contact us immediately at support@wajiz.pk with your order number and photos of the item’s condition.
+                                If your order arrives damaged, please contact us immediately at support@levric.store with your order number and photos of the items condition.
                             </p>
                         </section>
                     </div>

@@ -6,7 +6,7 @@ export default function Footer() {
             <div className="container px-4 md:px-6">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                     <div className="space-y-4">
-                        <h3 className="text-lg font-bold">wajiz.pk</h3>
+                        <h3 className="text-lg font-bold">levric</h3>
                         <p className="text-sm text-muted-foreground">
                             Premium computing for the modern professional.
                         </p>

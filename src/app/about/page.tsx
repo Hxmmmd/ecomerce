@@ -26,7 +26,7 @@ export default function AboutPage() {
                             Redefining Portable Power
                         </h1>
                         <p className="text-muted-foreground text-lg mb-8">
-                            At wajiz.pk, we believe technology should be an extension of your creativity.
+                            At levric, we believe technology should be an extension of your creativity.
                             We craft machines that are not just tools, but masterpieces of engineering and design.
                         </p>
                     </motion.div>
@@ -46,7 +46,7 @@ export default function AboutPage() {
                                 We got tired of choosing between a powerful bulky laptop and a sleek but slow one.
                             </p>
                             <p className="text-muted-foreground">
-                                Every wajiz.pk is built with premium materials, calibrated displays, and the latest generation processors
+                                Every levric is built with premium materials, calibrated displays, and the latest generation processors
                                 to ensure you never have to compromise.
                             </p>
                         </motion.div>

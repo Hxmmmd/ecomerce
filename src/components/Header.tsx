@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ShoppingCart, Menu, X, User, LogOut, Settings, Package, ArrowLeft } from 'lucide-react';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { ShoppingCart, Menu, X, User, LogOut, Package, ArrowLeft } from 'lucide-react';
+import { useState,  useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { Button, buttonVariants } from '@/components/ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -60,7 +60,7 @@ export default function Header() {
                     {/* Logo */}
                     <Link href="/" className="flex items-center space-x-2 group flex-shrink-0 mr-4">
                         <span className="text-xl font-bold tracking-tight text-white group-hover:text-gray-200 transition-colors">
-                            wajiz.pk
+                            LEVRIC
                         </span>
                     </Link>
 

@@ -36,7 +36,7 @@ export default function HeroSection() {
                             <div className="relative w-full h-full max-w-[600px] mx-auto">
                                 <Image
                                     src="/images/1.png"
-                                    alt="Premium wajiz.pk Laptop"
+                                    alt="Premium levric Laptop"
                                     fill
                                     className="object-contain drop-shadow-2xl"
                                     priority
@@ -85,7 +85,7 @@ export default function HeroSection() {
                         <div className="relative w-full h-full max-w-[800px] mx-auto">
                             <Image
                                 src="/images/1.png"
-                                alt="Premium wajiz.pk Laptop"
+                                alt="Premium levric Laptop"
                                 fill
                                 className="object-contain drop-shadow-2xl"
                                 priority

@@ -26,7 +26,7 @@ export default function ReturnsPage() {
                         <section>
                             <h2 className="text-xl font-semibold text-white mb-2">How to Request a Return</h2>
                             <p>
-                                To initiate a return, please email us at support@wajiz.pk or call our customer service. We will arrange a reverse pickup from your address.
+                                To initiate a return, please email us at support@levric.store or call our customer service. We will arrange a reverse pickup from your address.
                             </p>
                         </section>
 

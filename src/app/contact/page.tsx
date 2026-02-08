@@ -35,10 +35,10 @@ export default function ContactPage() {
                         className="text-center max-w-2xl mx-auto mb-12"
                     >
                         <h1 className="text-4xl md:text-5xl font-black mb-4 bg-gradient-to-br from-white to-gray-500 bg-clip-text text-transparent tracking-tighter">
-                            Let's Connect
+                            Lets Connect
                         </h1>
                         <p className="text-muted-foreground text-base max-w-lg mx-auto leading-relaxed font-medium">
-                            We'd love to hear from you. Reach out regarding sales, support, or just to say hello.
+                            We Would love to hear from you. Reach out regarding sales, support, or just to say hello.
                         </p>
                     </motion.div>
 
@@ -50,7 +50,7 @@ export default function ContactPage() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5, delay: 0.1 }}
                         >
-                            <Link href="https://instagram.com/wajiz.pk" target="_blank" className="block h-full cursor-pointer group">
+                            <Link href="https://instagram.com/levric.store" target="_blank" className="block h-full cursor-pointer group">
                                 <div className="h-full bg-white/5 border border-white/10 hover:border-pink-500/50 hover:bg-white/10 rounded-2xl p-4 transition-all duration-300 relative overflow-hidden">
                                     <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <ExternalLink className="w-3 h-3 text-white/50" />
@@ -60,7 +60,7 @@ export default function ContactPage() {
                                     </div>
                                     <h3 className="text-sm font-black mb-0.5 uppercase tracking-tight bg-gradient-to-br from-white to-gray-500 bg-clip-text text-transparent">Instagram</h3>
                                     <p className="text-muted-foreground text-[10px] mb-2 font-medium">Follow us for updates & DM for quick support.</p>
-                                    <span className="text-pink-400 text-[9px] font-black group-hover:underline decoration-pink-400/30 underline-offset-4 tracking-wider">@WAJIZ.PK</span>
+                                    <span className="text-pink-400 text-[9px] font-black group-hover:underline decoration-pink-400/30 underline-offset-4 tracking-wider">@LEVRIC.STORE</span>
                                 </div>
                             </Link>
                         </motion.div>
@@ -71,7 +71,7 @@ export default function ContactPage() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5, delay: 0.2 }}
                         >
-                            <Link href="https://tiktok.com/@wajiz.pk" target="_blank" className="block h-full cursor-pointer group">
+                            <Link href="https://tiktok.com/@levric.store" target="_blank" className="block h-full cursor-pointer group">
                                 <div className="h-full bg-white/5 border border-white/10 hover:border-white/50 hover:bg-white/10 rounded-2xl p-4 transition-all duration-300 relative overflow-hidden">
                                     <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <ExternalLink className="w-3 h-3 text-white/50" />
@@ -81,7 +81,7 @@ export default function ContactPage() {
                                     </div>
                                     <h3 className="text-sm font-black mb-0.5 uppercase tracking-tight bg-gradient-to-br from-white to-gray-500 bg-clip-text text-transparent">TikTok</h3>
                                     <p className="text-muted-foreground text-[10px] mb-2 font-medium">Watch our latest unboxings and tech reviews.</p>
-                                    <span className="text-gray-400 text-[9px] font-black group-hover:underline decoration-gray-400/30 underline-offset-4 tracking-wider">@WAJIZ.PK</span>
+                                    <span className="text-gray-400 text-[9px] font-black group-hover:underline decoration-gray-400/30 underline-offset-4 tracking-wider">@LEVRIC.STORE</span>
                                 </div>
                             </Link>
                         </motion.div>
@@ -92,7 +92,7 @@ export default function ContactPage() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5, delay: 0.25 }}
                         >
-                            <Link href="https://facebook.com/wajiz.pk" target="_blank" className="block h-full cursor-pointer group">
+                            <Link href="https://facebook.com/levric.store" target="_blank" className="block h-full cursor-pointer group">
                                 <div className="h-full bg-white/5 border border-white/10 hover:border-blue-600/50 hover:bg-white/10 rounded-2xl p-4 transition-all duration-300 relative overflow-hidden">
                                     <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <ExternalLink className="w-3 h-3 text-white/50" />
@@ -102,7 +102,7 @@ export default function ContactPage() {
                                     </div>
                                     <h3 className="text-sm font-black mb-0.5 uppercase tracking-tight bg-gradient-to-br from-white to-gray-500 bg-clip-text text-transparent">Facebook</h3>
                                     <p className="text-muted-foreground text-[10px] mb-2 font-medium">Join our community.</p>
-                                    <span className="text-blue-400 text-[9px] font-black group-hover:underline decoration-blue-400/30 underline-offset-4 tracking-wider">@WAJIZ.PK</span>
+                                    <span className="text-blue-400 text-[9px] font-black group-hover:underline decoration-blue-400/30 underline-offset-4 tracking-wider">@LEVRIC</span>
                                 </div>
                             </Link>
                         </motion.div>
@@ -120,8 +120,8 @@ export default function ContactPage() {
                                 <h3 className="text-sm font-black mb-0.5 uppercase tracking-tight bg-gradient-to-br from-white to-gray-500 bg-clip-text text-transparent">Email Us</h3>
                                 <p className="text-muted-foreground text-[10px] mb-2 font-medium">Drop us a line anytime.</p>
                                 <div className="space-y-0.5">
-                                    <p className="text-white text-[10px] font-black hover:text-blue-400 transition-colors">SUPPORT@WAJIZ.PK</p>
-                                    <p className="text-white text-[10px] font-black hover:text-blue-400 transition-colors">SALES@WAJIZ.PK</p>
+                                    <p className="text-white text-[10px] font-black hover:text-blue-400 transition-colors">SUPPORT@LEVRIC.STORE</p>
+                                    <p className="text-white text-[10px] font-black hover:text-blue-400 transition-colors">SALES@LEVRIC.STORE</p>
                                 </div>
                             </div>
                         </motion.div>

@@ -41,7 +41,7 @@ export default function PrivacyPage() {
                         <section>
                             <h2 className="text-xl font-semibold text-white mb-2">Contact Us</h2>
                             <p>
-                                If you have any questions about this Privacy Policy, please contact us at privacy@wajiz.pk.
+                                If you have any questions about this Privacy Policy, please contact us at privacy@Levric.
                             </p>
                         </section>
                     </div>

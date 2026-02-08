@@ -7,7 +7,7 @@ import { Providers } from "@/components/Providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-    title: "wajiz.pk | Premium Tech",
+    title: "levric | Premium Tech",
     description: "Experience the future of computing with our premium selection of laptops.",
 };
 
