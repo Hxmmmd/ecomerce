@@ -10,6 +10,7 @@ import { getProductBySlug, createOrder, validateProducts } from '@/lib/actions/o
 import { ShoppingBag, Truck, CreditCard, ChevronRight, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
+import FullScreenLoader from '@/components/ui/FullScreenLoader';
 
 export default function CheckoutPage() {
     const { items: cartItems, itemsPrice: cartItemsPrice, clearCart } = useCart();
@@ -23,6 +24,8 @@ export default function CheckoutPage() {
     const [orderSuccess, setOrderSuccess] = useState(false);
     const [staleError, setStaleError] = useState(false);
 
+    const [isInitializing, setIsInitializing] = useState(true);
+
     // Form states
     const [shipping, setShipping] = useState({
         fullName: '',
@@ -34,44 +37,51 @@ export default function CheckoutPage() {
 
     useEffect(() => {
         const initCheckout = async () => {
-            if (productSlug) {
-                const product = await getProductBySlug(productSlug);
-                if (product) {
-                    const price = product.discount > 0 ? product.price * (1 - product.discount / 100) : product.price;
-                    setCheckoutItems([{
-                        _id: product._id,
-                        name: product.title,
-                        image: product.images?.[0] || '/images/placeholder.jpg',
-                        price: price,
-                        qty: 1,
-                        product: product._id
-                    }]);
-                    setTotalPrice(price);
-                } else {
-                    setStaleError(true);
-                }
-            } else if (cartItems.length > 0) {
-                const productIds = cartItems.map(item => item._id);
-                const dbProducts = await validateProducts(productIds);
-
-                if (dbProducts.length !== cartItems.length) {
-                    setStaleError(true);
-                } else {
-                    const validItems = cartItems.map(item => {
-                        const dbProd = dbProducts.find((p: any) => p._id === item._id);
-                        const price = dbProd.discount > 0 ? dbProd.price * (1 - dbProd.discount / 100) : dbProd.price;
-                        return {
-                            ...item,
-                            name: dbProd.title,
-                            image: dbProd.images?.[0] || '/images/placeholder.jpg',
+            setIsInitializing(true);
+            try {
+                if (productSlug) {
+                    const product = await getProductBySlug(productSlug);
+                    if (product) {
+                        const price = product.discount > 0 ? product.price * (1 - product.discount / 100) : product.price;
+                        setCheckoutItems([{
+                            _id: product._id,
+                            name: product.title,
+                            image: product.images?.[0] || '/images/placeholder.jpg',
                             price: price,
-                            product: item._id
-                        };
-                    });
-                    setCheckoutItems(validItems);
-                    const total = validItems.reduce((acc, item) => acc + (item.price * item.qty), 0);
-                    setTotalPrice(total);
+                            qty: 1,
+                            product: product._id
+                        }]);
+                        setTotalPrice(price);
+                    } else {
+                        setStaleError(true);
+                    }
+                } else if (cartItems.length > 0) {
+                    const productIds = cartItems.map(item => item._id);
+                    const dbProducts = await validateProducts(productIds);
+
+                    if (dbProducts.length !== cartItems.length) {
+                        setStaleError(true);
+                    } else {
+                        const validItems = cartItems.map(item => {
+                            const dbProd = dbProducts.find((p: any) => p._id === item._id);
+                            const price = dbProd.discount > 0 ? dbProd.price * (1 - dbProd.discount / 100) : dbProd.price;
+                            return {
+                                ...item,
+                                name: dbProd.title,
+                                image: dbProd.images?.[0] || '/images/placeholder.jpg',
+                                price: price,
+                                product: item._id
+                            };
+                        });
+                        setCheckoutItems(validItems);
+                        const total = validItems.reduce((acc, item) => acc + (item.price * item.qty), 0);
+                        setTotalPrice(total);
+                    }
                 }
+            } catch (error) {
+                console.error("Checkout init error:", error);
+            } finally {
+                setIsInitializing(false);
             }
         };
         initCheckout();
@@ -108,6 +118,10 @@ export default function CheckoutPage() {
             setLoading(false);
         }
     };
+
+    if (isInitializing) {
+        return <FullScreenLoader isLoading={true} />;
+    }
 
     if (staleError) {
         return (
