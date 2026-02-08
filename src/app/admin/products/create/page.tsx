@@ -11,6 +11,7 @@ import ProductCard from '@/components/ProductCard';
 
 export default function CreateProductPage() {
     const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const router = useRouter();
 
     // State for live preview
@@ -58,15 +59,29 @@ export default function CreateProductPage() {
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        setError(null);
 
         if (totalImages > 5) {
-            alert(`You have selected ${totalImages} images. Maximum allowed is 5.`);
+            setError(`You have selected ${totalImages} images. Maximum allowed is 5.`);
             return;
         }
 
         setSubmitting(true);
-        const formData = new FormData(event.currentTarget);
-        await createProduct(formData);
+        try {
+            const formData = new FormData(event.currentTarget);
+            const result = await createProduct(formData);
+
+            // If result is returned (error case), handle it
+            if (result && !result.success) {
+                setError(result.error || 'Failed to create product');
+                setSubmitting(false);
+            }
+            // If no result, redirect happened successfully
+        } catch (err: any) {
+            console.error('Form submission error:', err);
+            setError(err.message || 'An unexpected error occurred');
+            setSubmitting(false);
+        }
     }
 
     return (
@@ -204,6 +219,13 @@ export default function CreateProductPage() {
                         <p>Total Images Selected: <strong>{totalImages}</strong></p>
                         <p className="text-xs">{totalImages > 5 ? "⚠️ Limit exceeded (Max 5)" : "Max 5 images allowed"}</p>
                     </div>
+
+                    {error && (
+                        <div className="p-4 rounded-lg border bg-red-500/10 border-red-500/50 text-red-400">
+                            <p className="font-semibold">Error:</p>
+                            <p className="text-sm">{error}</p>
+                        </div>
+                    )}
 
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-400">Description</label>

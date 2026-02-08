@@ -65,82 +65,111 @@ export async function getProduct(id: string) {
 }
 
 async function saveFile(file: File): Promise<string> {
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const fileName = `${Date.now()}-${file.name.replace(/\s+/g, '-')}`;
-    const relativePath = `/uploads/${fileName}`;
-    const absolutePath = path.join(process.cwd(), 'public', 'uploads', fileName);
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const fileName = `${Date.now()}-${file.name.replace(/\s+/g, '-')}`;
+        const relativePath = `/uploads/${fileName}`;
+        const absolutePath = path.join(process.cwd(), 'public', 'uploads', fileName);
 
-    await fs.mkdir(path.dirname(absolutePath), { recursive: true });
-    await fs.writeFile(absolutePath, buffer);
+        await fs.mkdir(path.dirname(absolutePath), { recursive: true });
+        await fs.writeFile(absolutePath, buffer);
 
-    return relativePath;
+        console.log('File saved successfully:', relativePath);
+        return relativePath;
+    } catch (error) {
+        console.error('Error saving file:', error);
+        throw new Error(`Failed to save file: ${file.name}`);
+    }
 }
 
 export async function createProduct(formData: FormData) {
-    await dbConnect();
+    try {
+        console.log('Starting product creation...');
+        await dbConnect();
+        console.log('Database connected');
 
-    const title = (formData.get('title') || formData.get('name')) as string;
-    const price = Number(formData.get('price'));
-    const discount = Number(formData.get('discount') || 0);
-    const expiryDate = formData.get('discountExpiryDate') as string;
-    const expiryTime = formData.get('discountExpiryTime') as string;
-    const discountExpiry = expiryDate ? new Date(`${expiryDate}T${expiryTime || '00:00'}`) : null;
-    const category = formData.get('category') as string;
-    const description = formData.get('description') as string;
-    const stock = Number(formData.get('stock') || formData.get('countInStock'));
-    const condition = formData.get('condition') as string;
+        const title = (formData.get('title') || formData.get('name')) as string;
+        const price = Number(formData.get('price'));
+        const discount = Number(formData.get('discount') || 0);
+        const expiryDate = formData.get('discountExpiryDate') as string;
+        const expiryTime = formData.get('discountExpiryTime') as string;
+        const discountExpiry = expiryDate ? new Date(`${expiryDate}T${expiryTime || '00:00'}`) : null;
+        const category = formData.get('category') as string;
+        const description = formData.get('description') as string;
+        const stock = Number(formData.get('stock') || formData.get('countInStock'));
+        const condition = formData.get('condition') as string;
 
-    const mainImageFile = formData.get('imageFile') as File;
-    let image = formData.get('image') as string;
+        console.log('Form data extracted:', { title, category, price, stock, condition });
 
-    if (mainImageFile && mainImageFile.size > 0) {
-        image = await saveFile(mainImageFile);
-    }
+        const mainImageFile = formData.get('imageFile') as File;
+        let image = formData.get('image') as string;
 
-    const additionalImageFiles = formData.getAll('imagesFiles') as File[];
-    let images = (formData.get('images') as string || '').split(',').map(s => s.trim()).filter(Boolean);
+        console.log('Processing main image...', { hasFile: mainImageFile && mainImageFile.size > 0, hasUrl: !!image });
 
-    if (additionalImageFiles && additionalImageFiles.length > 0) {
-        for (const file of additionalImageFiles) {
-            if (file.size > 0) {
-                const uploadedPath = await saveFile(file);
-                images.push(uploadedPath);
+        if (mainImageFile && mainImageFile.size > 0) {
+            console.log('Uploading main image file...');
+            image = await saveFile(mainImageFile);
+            console.log('Main image uploaded:', image);
+        }
+
+        const additionalImageFiles = formData.getAll('imagesFiles') as File[];
+        let images = (formData.get('images') as string || '').split(',').map(s => s.trim()).filter(Boolean);
+
+        console.log('Processing additional images...', { fileCount: additionalImageFiles.length, urlCount: images.length });
+
+        if (additionalImageFiles && additionalImageFiles.length > 0) {
+            for (const file of additionalImageFiles) {
+                if (file.size > 0) {
+                    console.log('Uploading additional image file...');
+                    const uploadedPath = await saveFile(file);
+                    images.push(uploadedPath);
+                    console.log('Additional image uploaded:', uploadedPath);
+                }
             }
         }
+
+        // Add main image to images array if available
+        if (image) {
+            images = [image, ...images];
+        }
+
+        // Ensure unique images and limit to 5
+        images = [...new Set(images)];
+
+        console.log('Total images after processing:', images.length);
+
+        if (images.length > 5) {
+            console.error('Too many images:', images.length);
+            return { success: false, error: 'Maximum 5 images allowed per product.' };
+        }
+
+        const slug = title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
+
+        console.log('Creating product in database...');
+        await Product.create({
+            title,
+            slug,
+            price,
+            discount,
+            discountExpiry,
+            images,
+            category,
+            description,
+            stock,
+            condition,
+            isNewProduct: condition === 'New'
+        });
+
+        console.log('Product created successfully');
+
+        revalidatePath('/admin');
+        revalidatePath('/products');
+        redirect('/admin');
+    } catch (error: any) {
+        console.error('Error creating product:', error);
+        return { success: false, error: error.message || 'Failed to create product' };
     }
-
-    // Add main image to images array if available
-    if (image) {
-        images = [image, ...images];
-    }
-
-    // Ensure unique images and limit to 5
-    images = [...new Set(images)];
-
-    if (images.length > 5) {
-        throw new Error('Maximum 5 images allowed per product.');
-    }
-
-    const slug = title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
-
-    await Product.create({
-        title,
-        slug,
-        price,
-        discount,
-        discountExpiry,
-        images,
-        category,
-        description,
-        stock,
-        condition,
-        isNewProduct: condition === 'New'
-    });
-
-    revalidatePath('/admin');
-    revalidatePath('/products');
-    redirect('/admin');
 }
 
 export async function updateProduct(id: string, formData: FormData) {
