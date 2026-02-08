@@ -64,30 +64,17 @@ export async function getProduct(id: string) {
     };
 }
 
-async function saveFile(file: File): Promise<string> {
-    try {
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        const fileName = `${Date.now()}-${file.name.replace(/\s+/g, '-')}`;
-        const relativePath = `/uploads/${fileName}`;
-        const absolutePath = path.join(process.cwd(), 'public', 'uploads', fileName);
-
-        await fs.mkdir(path.dirname(absolutePath), { recursive: true });
-        await fs.writeFile(absolutePath, buffer);
-
-        console.log('File saved successfully:', relativePath);
-        return relativePath;
-    } catch (error) {
-        console.error('Error saving file:', error);
-        throw new Error(`Failed to save file: ${file.name}`);
-    }
+// Helper to get Base64
+async function fileToBase64(file: File): Promise<string> {
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    return `data:${file.type};base64,${buffer.toString('base64')}`;
 }
 
 export async function createProduct(formData: FormData) {
     try {
         console.log('Starting product creation...');
         await dbConnect();
-        console.log('Database connected');
 
         const title = (formData.get('title') || formData.get('name')) as string;
         const price = Number(formData.get('price'));
@@ -100,31 +87,26 @@ export async function createProduct(formData: FormData) {
         const stock = Number(formData.get('stock') || formData.get('countInStock'));
         const condition = formData.get('condition') as string;
 
-        console.log('Form data extracted:', { title, category, price, stock, condition });
-
         const mainImageFile = formData.get('imageFile') as File;
         let image = formData.get('image') as string;
 
-        console.log('Processing main image...', { hasFile: mainImageFile && mainImageFile.size > 0, hasUrl: !!image });
-
         if (mainImageFile && mainImageFile.size > 0) {
-            console.log('Uploading main image file...');
-            image = await saveFile(mainImageFile);
-            console.log('Main image uploaded:', image);
+            console.log('Converting main image to Base64...');
+            // Check size (max 4MB for DB safety)
+            if (mainImageFile.size > 4 * 1024 * 1024) throw new Error("Main image too large (max 4MB)");
+            image = await fileToBase64(mainImageFile);
         }
 
         const additionalImageFiles = formData.getAll('imagesFiles') as File[];
         let images = (formData.get('images') as string || '').split(',').map(s => s.trim()).filter(Boolean);
 
-        console.log('Processing additional images...', { fileCount: additionalImageFiles.length, urlCount: images.length });
-
         if (additionalImageFiles && additionalImageFiles.length > 0) {
             for (const file of additionalImageFiles) {
                 if (file.size > 0) {
-                    console.log('Uploading additional image file...');
-                    const uploadedPath = await saveFile(file);
-                    images.push(uploadedPath);
-                    console.log('Additional image uploaded:', uploadedPath);
+                    console.log('Converting additional image to Base64...');
+                    if (file.size > 4 * 1024 * 1024) throw new Error(`Image ${file.name} too large (max 4MB)`);
+                    const base64 = await fileToBase64(file);
+                    images.push(base64);
                 }
             }
         }
@@ -137,16 +119,12 @@ export async function createProduct(formData: FormData) {
         // Ensure unique images and limit to 5
         images = [...new Set(images)];
 
-        console.log('Total images after processing:', images.length);
-
         if (images.length > 5) {
-            console.error('Too many images:', images.length);
             return { success: false, error: 'Maximum 5 images allowed per product.' };
         }
 
         const slug = title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
 
-        console.log('Creating product in database...');
         await Product.create({
             title,
             slug,
@@ -161,8 +139,6 @@ export async function createProduct(formData: FormData) {
             isNewProduct: condition === 'New'
         });
 
-        console.log('Product created successfully');
-
         revalidatePath('/admin');
         revalidatePath('/products');
         redirect('/admin');
@@ -173,67 +149,76 @@ export async function createProduct(formData: FormData) {
 }
 
 export async function updateProduct(id: string, formData: FormData) {
-    await dbConnect();
+    try {
+        await dbConnect();
 
-    const title = (formData.get('title') || formData.get('name')) as string;
-    const price = Number(formData.get('price'));
-    const discount = Number(formData.get('discount') || 0);
-    const expiryDate = formData.get('discountExpiryDate') as string;
-    const expiryTime = formData.get('discountExpiryTime') as string;
-    const discountExpiry = expiryDate ? new Date(`${expiryDate}T${expiryTime || '00:00'}`) : null;
-    const category = formData.get('category') as string;
-    const description = formData.get('description') as string;
-    const stock = Number(formData.get('stock') || formData.get('countInStock'));
-    const condition = formData.get('condition') as string;
+        const title = (formData.get('title') || formData.get('name')) as string;
+        const price = Number(formData.get('price'));
+        const discount = Number(formData.get('discount') || 0);
+        const expiryDate = formData.get('discountExpiryDate') as string;
+        const expiryTime = formData.get('discountExpiryTime') as string;
+        const discountExpiry = expiryDate ? new Date(`${expiryDate}T${expiryTime || '00:00'}`) : null;
+        const category = formData.get('category') as string;
+        const description = formData.get('description') as string;
+        const stock = Number(formData.get('stock') || formData.get('countInStock'));
+        const condition = formData.get('condition') as string;
 
-    const mainImageFile = formData.get('imageFile') as File;
-    let image = formData.get('image') as string;
+        const mainImageFile = formData.get('imageFile') as File;
+        let image = formData.get('image') as string;
 
-    if (mainImageFile && mainImageFile.size > 0) {
-        image = await saveFile(mainImageFile);
-    }
+        if (mainImageFile && mainImageFile.size > 0) {
+            if (mainImageFile.size > 4 * 1024 * 1024) throw new Error("Main image too large (max 4MB)");
+            image = await fileToBase64(mainImageFile);
+        }
 
-    const additionalImageFiles = formData.getAll('imagesFiles') as File[];
-    let images = (formData.get('images') as string || '').split(',').map(s => s.trim()).filter(Boolean);
+        const additionalImageFiles = formData.getAll('imagesFiles') as File[];
+        let images = (formData.get('images') as string || '').split(',').map(s => s.trim()).filter(Boolean);
 
-    if (additionalImageFiles && additionalImageFiles.length > 0) {
-        for (const file of additionalImageFiles) {
-            if (file.size > 0) {
-                const uploadedPath = await saveFile(file);
-                images.push(uploadedPath);
+        if (additionalImageFiles && additionalImageFiles.length > 0) {
+            for (const file of additionalImageFiles) {
+                if (file.size > 0) {
+                    if (file.size > 4 * 1024 * 1024) throw new Error(`Image ${file.name} too large (max 4MB)`);
+                    const base64 = await fileToBase64(file);
+                    images.push(base64);
+                }
             }
         }
+
+        // Add main image to images array if available
+        if (image) {
+            images = [image, ...images];
+        }
+
+        // Ensure unique images and limit to 5
+        images = [...new Set(images)];
+
+        if (images.length > 5) {
+            throw new Error('Maximum 5 images allowed per product.');
+        }
+
+        await Product.findByIdAndUpdate(id, {
+            title,
+            price,
+            discount,
+            discountExpiry,
+            images,
+            category,
+            description,
+            stock,
+            condition,
+            isNewProduct: condition === 'New'
+        });
+
+        revalidatePath('/admin');
+        revalidatePath('/products');
+        revalidatePath(`/products/${id}`);
+        redirect('/admin');
+    } catch (error: any) {
+        console.error('Error updating product:', error);
+        // Note: updateProduct signature in server actions usually doesn't return value if used with bind, 
+        // but if used directly it can. For now we just redirect or throw.
+        throw error;
     }
-
-    // Add main image to images array if available
-    if (image) {
-        images = [image, ...images];
-    }
-
-    // Ensure unique images and limit to 5
-    images = [...new Set(images)];
-
-    if (images.length > 5) {
-        throw new Error('Maximum 5 images allowed per product.');
-    }
-
-    await Product.findByIdAndUpdate(id, {
-        title,
-        price,
-        discount,
-        discountExpiry,
-        images,
-        category,
-        description,
-        stock,
-        condition,
-        isNewProduct: condition === 'New'
-    });
-
-    revalidatePath('/admin');
-    revalidatePath('/products');
-    revalidatePath(`/products/${id}`);
-    redirect('/admin');
 }
 
 export async function deleteProduct(id: string) {
