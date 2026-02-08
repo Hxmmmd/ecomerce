@@ -78,6 +78,11 @@ export default function CreateProductPage() {
             }
             // If no result, redirect happened successfully
         } catch (err: any) {
+            // Check for NEXT_REDIRECT error
+            if (err.message === 'NEXT_REDIRECT' || err.digest?.startsWith('NEXT_REDIRECT')) {
+                // This is normal, allow redirect
+                return;
+            }
             console.error('Form submission error:', err);
             setError(err.message || 'An unexpected error occurred');
             setSubmitting(false);

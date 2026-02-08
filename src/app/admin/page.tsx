@@ -7,6 +7,8 @@ import Search from '@/components/Search';
 
 import ProductFilters from '@/components/ProductFilters';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminDashboard({
     searchParams
 }: {

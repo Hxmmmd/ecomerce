@@ -8,13 +8,19 @@ export async function searchProducts(query: string) {
 
     await dbConnect();
 
-    // Use text search index for better performance
-    const products = await Product.find(
-        { $text: { $search: query } },
-        { score: { $meta: 'textScore' } }
-    )
+    // Use regex for partial matching instead of text search
+    // This allows "mac" to find "macbook"
+    const sanitizedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(sanitizedQuery, 'i');
+
+    const products = await Product.find({
+        $or: [
+            { title: { $regex: regex } },
+            { category: { $regex: regex } },
+            { description: { $regex: regex } }
+        ]
+    })
         .select('title images price slug category condition') // Only select needed fields
-        .sort({ score: { $meta: 'textScore' } }) // Sort by relevance
         .limit(5)
         .lean();
 
