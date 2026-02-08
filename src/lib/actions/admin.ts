@@ -12,12 +12,17 @@ export async function getProducts(params: { query?: string, condition?: string, 
     await dbConnect();
     const filter: any = {};
 
+    function sanitizeRegex(str: string) {
+        return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
     if (params.query) {
+        const sanitizedQuery = sanitizeRegex(params.query);
         filter.$or = [
-            { title: { $regex: params.query, $options: 'i' } }, // Renamed from name
-            { category: { $regex: params.query, $options: 'i' } },
-            { condition: { $regex: params.query, $options: 'i' } },
-            { description: { $regex: params.query, $options: 'i' } }
+            { title: { $regex: sanitizedQuery, $options: 'i' } }, // Renamed from name
+            { category: { $regex: sanitizedQuery, $options: 'i' } },
+            { condition: { $regex: sanitizedQuery, $options: 'i' } },
+            { description: { $regex: sanitizedQuery, $options: 'i' } }
         ];
     }
 
@@ -141,11 +146,12 @@ export async function createProduct(formData: FormData) {
 
         revalidatePath('/admin');
         revalidatePath('/products');
-        redirect('/admin');
     } catch (error: any) {
         console.error('Error creating product:', error);
         return { success: false, error: error.message || 'Failed to create product' };
     }
+
+    redirect('/admin');
 }
 
 export async function updateProduct(id: string, formData: FormData) {
@@ -212,13 +218,12 @@ export async function updateProduct(id: string, formData: FormData) {
         revalidatePath('/admin');
         revalidatePath('/products');
         revalidatePath(`/products/${id}`);
-        redirect('/admin');
     } catch (error: any) {
         console.error('Error updating product:', error);
-        // Note: updateProduct signature in server actions usually doesn't return value if used with bind, 
-        // but if used directly it can. For now we just redirect or throw.
         throw error;
     }
+
+    redirect('/admin');
 }
 
 export async function deleteProduct(id: string) {
