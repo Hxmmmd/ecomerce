@@ -217,11 +217,12 @@ export default function ProductFilters() {
 
                         {/* Sidebar */}
                         <motion.div
-                            initial={{ x: '-100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '-100%' }}
+                            initial={{ x: '-100%', opacity: 1 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            exit={{ x: '-100%', opacity: 1 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="lg:hidden fixed inset-y-0 left-0 z-[60] w-[80%] md:w-[40%] bg-black/90 backdrop-blur-xl border-r border-white/10 p-5 shadow-2xl flex flex-col pt-20"
+                            style={{ backgroundColor: '#09090b', opacity: 1 }}
+                            className="lg:hidden fixed inset-y-0 left-0 z-[100] w-[85%] md:w-[40%] border-r border-white/10 p-5 shadow-2xl flex flex-col pt-20"
                         >
                             <div className="flex items-center justify-between mb-6 pb-3 border-b border-white/5">
                                 <span className="text-white font-bold text-sm flex items-center gap-2">

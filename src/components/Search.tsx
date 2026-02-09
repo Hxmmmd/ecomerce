@@ -120,7 +120,7 @@ export default function Search({ isAdmin = false, className }: SearchProps) {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
                         transition={{ duration: 0.2 }}
-                        className="absolute top-full left-0 right-0 mt-2 bg-black/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 p-2"
+                        className="absolute top-full left-0 right-0 mt-2 bg-[#09090b] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 p-2"
                     >
                         {results.length > 0 ? (
                             <div className="space-y-1">

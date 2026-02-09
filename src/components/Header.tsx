@@ -43,7 +43,7 @@ export default function Header() {
     }, [session?.user?.isAdmin]);
 
     return (
-        <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-black/60 backdrop-blur-md supports-[backdrop-filter]:bg-black/30">
+        <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-[#09090b]">
             <div className="container mx-auto px-4 md:px-6">
                 <div className="flex h-16 items-center justify-start gap-8">
                     {/* Back Button - Mobile Only */}
@@ -167,16 +167,17 @@ export default function Header() {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setIsOpen(false)}
-                            className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[55]"
+                            className="md:hidden fixed inset-0 bg-black/80 z-[55]"
                         />
 
                         {/* Drawer */}
                         <motion.div
-                            initial={{ x: '-100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '-100%' }}
+                            initial={{ x: '-100%', opacity: 1 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            exit={{ x: '-100%', opacity: 1 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="md:hidden fixed inset-y-0 left-0 z-[60] w-[80%] max-w-sm bg-black/90 backdrop-blur-xl border-r border-white/10 shadow-2xl flex flex-col"
+                            style={{ backgroundColor: '#09090b', opacity: 1 }}
+                            className="md:hidden fixed inset-y-0 left-0 z-[100] w-[85%] max-w-sm border-r border-white/10 shadow-2xl flex flex-col"
                         >
                             {/* Menu Header */}
                             <div className="flex items-center justify-between p-6 border-b border-white/5">
