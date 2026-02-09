@@ -12,7 +12,39 @@ import BuyNowButton from '@/components/BuyNowButton';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+import { Metadata, ResolvingMetadata } from 'next';
+
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata(
+    { params }: { params: Promise<{ slug: string }> },
+    parent: ResolvingMetadata
+): Promise<Metadata> {
+    const { slug } = await params;
+    const product = await getProduct(slug);
+
+    if (!product) {
+        return {
+            title: 'Product Not Found',
+        };
+    }
+
+    const previousImages = (await parent).openGraph?.images || [];
+
+    return {
+        title: `${product.title} (${product.condition}) - Buy Online`,
+        description: product.description?.substring(0, 160) || `Buy ${product.title} at levric. Premium ${product.category} in ${product.condition} condition.`,
+        openGraph: {
+            title: product.title,
+            description: `Get the best deal on ${product.title}. Price: $${product.price}.`,
+            url: `https://levric.vercel.app/products/${slug}`,
+            images: [
+                product.images?.[0] || product.image || '',
+                ...previousImages,
+            ],
+        },
+    }
+}
 
 async function getProduct(slug: string) {
     await dbConnect();
