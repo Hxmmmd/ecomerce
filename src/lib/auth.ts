@@ -28,6 +28,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                         name: user.name,
                         email: user.email,
                         isAdmin: user.role === 'admin',
+                        role: user.role,
                     };
                 }
                 return null;
@@ -56,9 +57,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                         await newUser.save();
                         user.id = newUser._id.toString();
                         user.isAdmin = false;
+                        user.role = 'user';
                     } else {
                         user.id = existingUser._id.toString();
                         user.isAdmin = existingUser.role === 'admin';
+                        user.role = existingUser.role;
                     }
                     return true;
                 } catch (error) {

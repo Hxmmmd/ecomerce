@@ -7,6 +7,9 @@ import { redirect } from 'next/navigation';
 import fs from 'fs/promises';
 import path from 'path';
 import Order from '@/models/Order';
+import User from '@/models/User';
+import { auth } from '@/lib/auth';
+import bcrypt from 'bcryptjs';
 
 export async function getProducts(params: { query?: string, condition?: string, category?: string, minPrice?: string, maxPrice?: string } = {}) {
     await dbConnect();
@@ -357,5 +360,85 @@ export async function rejectOrder(id: string) {
         return { success: true };
     } catch (error: any) {
         return { success: false, error: error.message };
+    }
+}
+
+// User & Admin Management
+export async function getAllUsers(): Promise<any[]> {
+    const session = await auth();
+    if (!session || !session.user.isAdmin) {
+        throw new Error('Unauthorized');
+    }
+
+    await dbConnect();
+    const users = await User.find({}).select('-password').sort({ role: 1, createdAt: -1 }).lean();
+    return JSON.parse(JSON.stringify(users));
+}
+
+export async function createAdminUser(formData: FormData): Promise<{ success: boolean; error?: string }> {
+    const session = await auth();
+    if (!session || !session.user.isAdmin) {
+        throw new Error('Unauthorized');
+    }
+
+    await dbConnect();
+    const name = formData.get('name') as string;
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
+    if (!name || !email || !password) {
+        throw new Error('All fields are required');
+    }
+
+    if (!email.includes('@')) {
+        throw new Error('Please provide a valid email address');
+    }
+
+    if (password.length < 6) {
+        throw new Error('Password must be at least 6 characters long');
+    }
+
+    try {
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            throw new Error('User with this email already exists');
+        }
+
+        const hashedPassword = bcrypt.hashSync(password, 10);
+
+        await User.create({
+            name,
+            email,
+            password: hashedPassword,
+            role: 'admin'
+        });
+
+        revalidatePath('/profile');
+        return { success: true };
+    } catch (error: any) {
+        console.error('Create Admin Error:', error);
+        throw new Error(error.message || 'Error occurred while creating admin user');
+    }
+}
+
+export async function deleteUser(userId: string): Promise<{ success: boolean; error?: string }> {
+    const session = await auth();
+    if (!session || !session.user.isAdmin) {
+        throw new Error('Unauthorized');
+    }
+
+    // Prevent deleting self
+    if (session.user.id === userId) {
+        throw new Error('You cannot delete your own account from here');
+    }
+
+    await dbConnect();
+    try {
+        await User.findByIdAndDelete(userId);
+        revalidatePath('/profile');
+        return { success: true };
+    } catch (error: any) {
+        console.error('Delete User Error:', error);
+        return { success: false, error: 'Failed to delete user' };
     }
 }

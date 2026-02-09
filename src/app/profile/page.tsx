@@ -5,11 +5,13 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/Button';
 import { updateProfile, verifyDeletionPassword as verifyCurrentPassword } from '@/lib/actions/user';
-import { User, Mail, Lock, ShieldAlert, CheckCircle2, Loader2, Settings, Trash2, Pencil, Check, X as CloseIcon, Eye, EyeOff } from 'lucide-react';
+import { getAllUsers, createAdminUser, deleteUser } from '@/lib/actions/admin';
+import { User, Mail, Lock, ShieldAlert, CheckCircle2, Loader2, Settings, Trash2, Pencil, Check, X as CloseIcon, Eye, EyeOff, UserPlus, Users, ShieldCheck } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import DeleteAccountModal from '@/components/DeleteAccountModal';
 import ConfirmModal from '@/components/ConfirmModal';
+import { cn } from '@/lib/utils';
 
 export default function ProfilePage() {
     const { data: session, status } = useSession();
@@ -32,10 +34,95 @@ export default function ProfilePage() {
     const [showOldPassword, setShowOldPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
 
+    // Admin management states
+    const [adminList, setAdminList] = useState<any[]>([]);
+    const [isAdminLoading, setIsAdminLoading] = useState(false);
+    const [adminFormState, setAdminFormState] = useState({ name: '', email: '', password: '' });
+    const [adminStatus, setAdminStatus] = useState({ success: '', error: '' });
+    const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
+    const [isListLoading, setIsListLoading] = useState(true);
+    const [listError, setListError] = useState('');
+
     useEffect(() => {
         setMounted(true);
         if (session?.user?.name) setName(session.user.name);
+
+        if (session?.user?.isAdmin) {
+            fetchUsers();
+        } else {
+            setIsListLoading(false);
+        }
     }, [session]);
+
+    const fetchUsers = async () => {
+        setIsListLoading(true);
+        setListError('');
+        try {
+            const data = await getAllUsers();
+            setAdminList(data);
+        } catch (err: any) {
+            console.error('Failed to fetch users:', err);
+            setListError(err.message || 'Failed to load users list');
+        } finally {
+            setIsListLoading(false);
+        }
+    };
+
+    const handleCreateAdmin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsAdminLoading(true);
+        setAdminStatus({ success: '', error: '' });
+
+        // Basic Validation
+        if (!adminFormState.email.includes('@')) {
+            setAdminStatus({ success: '', error: 'Please enter a valid email address.' });
+            setIsAdminLoading(false);
+            return;
+        }
+        if (adminFormState.password.length < 6) {
+            setAdminStatus({ success: '', error: 'Password must be at least 6 characters long.' });
+            setIsAdminLoading(false);
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('name', adminFormState.name);
+            formData.append('email', adminFormState.email);
+            formData.append('password', adminFormState.password);
+
+            const res = await createAdminUser(formData);
+            if (res.success) {
+                setAdminStatus({ success: 'New admin created successfully!', error: '' });
+                setAdminFormState({ name: '', email: '', password: '' });
+                fetchUsers();
+            }
+        } catch (err: any) {
+            setAdminStatus({ success: '', error: err.message || 'Failed to create admin' });
+        } finally {
+            setIsAdminLoading(false);
+        }
+    };
+
+    const handleDeleteUser = async (userId: string) => {
+        if (!confirm('Are you sure you want to remove this account? This action cannot be undone.')) return;
+        setDeleteLoading(userId);
+        setAdminStatus({ success: '', error: '' });
+
+        try {
+            const res = await deleteUser(userId);
+            if (res.success) {
+                setAdminStatus({ success: 'User account deleted successfully.', error: '' });
+                fetchUsers();
+            } else {
+                setAdminStatus({ success: '', error: res.error || 'Failed to delete user' });
+            }
+        } catch (err: any) {
+            setAdminStatus({ success: '', error: err.message || 'Failed to delete user' });
+        } finally {
+            setDeleteLoading(null);
+        }
+    };
 
     const validatePassword = (pass: string) => {
         const hasUpper = /[A-Z]/.test(pass);
@@ -390,6 +477,154 @@ export default function ProfilePage() {
                                 </div>
                             </div>
                         </form>
+
+                        {/* Admin Management Section */}
+                        {session?.user?.isAdmin && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 }}
+                                className="space-y-10 pt-4"
+                            >
+                                <header className="space-y-2">
+                                    <div className="flex items-center gap-3 text-purple-500 font-black uppercase tracking-[0.3em] text-[10px] mb-2">
+                                        <ShieldAlert className="w-3 h-3" /> System Control
+                                    </div>
+                                    <h2 className="text-3xl font-black tracking-tighter">System Management</h2>
+                                    <p className="text-gray-400 text-sm">Create admins and manage all users in the system.</p>
+                                </header>
+
+                                <div className="grid lg:grid-cols-[400px_1fr] gap-8">
+                                    {/* Create New Admin Form */}
+                                    <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-6 md:p-8 backdrop-blur-md space-y-6 h-fit shrink-0">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <div className="p-2 bg-blue-500/10 rounded-xl">
+                                                <UserPlus className="w-4 h-4 text-blue-500" />
+                                            </div>
+                                            <h3 className="font-black uppercase tracking-widest text-xs text-white">Create New Admin</h3>
+                                        </div>
+
+                                        <form onSubmit={handleCreateAdmin} className="space-y-4">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest pl-1">Full Name</label>
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    value={adminFormState.name}
+                                                    onChange={e => setAdminFormState({ ...adminFormState, name: e.target.value })}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                                                    placeholder="Admin Name"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest pl-1">Email Address</label>
+                                                <input
+                                                    type="email"
+                                                    required
+                                                    value={adminFormState.email}
+                                                    onChange={e => setAdminFormState({ ...adminFormState, email: e.target.value })}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-mono"
+                                                    placeholder="admin@example.com"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest pl-1">Temporary Password</label>
+                                                <input
+                                                    type="password"
+                                                    required
+                                                    value={adminFormState.password}
+                                                    onChange={e => setAdminFormState({ ...adminFormState, password: e.target.value })}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                                                    placeholder="••••••••"
+                                                />
+                                            </div>
+
+                                            {adminStatus.error && <p className="text-red-500 text-[10px] font-bold uppercase tracking-widest text-center mt-2">{adminStatus.error}</p>}
+                                            {adminStatus.success && <p className="text-green-500 text-[10px] font-bold uppercase tracking-widest text-center mt-2">{adminStatus.success}</p>}
+
+                                            <Button
+                                                type="submit"
+                                                disabled={isAdminLoading}
+                                                className="w-full h-14 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-[0.2em] text-[10px] shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] mt-4"
+                                            >
+                                                {isAdminLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Register Admin'}
+                                            </Button>
+                                        </form>
+                                    </div>
+
+                                    {/* All Users List */}
+                                    <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-6 md:p-8 backdrop-blur-md flex flex-col min-w-0">
+                                        <div className="flex items-center justify-between mb-8">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-purple-500/10 rounded-xl">
+                                                    <Users className="w-4 h-4 text-purple-500" />
+                                                </div>
+                                                <h3 className="font-black uppercase tracking-widest text-xs text-white">System Users</h3>
+                                            </div>
+                                            <span className="text-[10px] font-black bg-white/5 px-3 py-1 rounded-full text-gray-500">
+                                                {adminList.length} Total
+                                            </span>
+                                        </div>
+
+                                        <div className="space-y-3 overflow-y-auto max-h-[500px] pr-2 scrollbar-thin scrollbar-thumb-white/10">
+                                            {isListLoading ? (
+                                                <div className="space-y-3">
+                                                    {[1, 2, 3].map((i) => (
+                                                        <div key={i} className="h-20 w-full bg-white/5 animate-pulse rounded-2xl" />
+                                                    ))}
+                                                </div>
+                                            ) : listError ? (
+                                                <div className="text-center py-10 space-y-3">
+                                                    <p className="text-red-500 text-xs font-bold uppercase tracking-widest">{listError}</p>
+                                                    <Button type="button" onClick={fetchUsers} variant="outline" size="sm" className="border-white/10 text-[10px] h-8">Try Again</Button>
+                                                </div>
+                                            ) : adminList.length === 0 ? (
+                                                <p className="text-center text-gray-600 py-10 text-xs italic">No users found in the system.</p>
+                                            ) : (
+                                                adminList.map((adm) => (
+                                                    <div key={adm._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white/5 border border-white/5 rounded-2xl transition-all hover:bg-white/[0.08] group gap-4 sm:gap-0">
+                                                        <div className="flex items-center gap-3 min-w-0">
+                                                            <div className={cn(
+                                                                "h-10 w-10 rounded-full flex items-center justify-center shrink-0",
+                                                                adm.role === 'admin' ? "bg-blue-500/10 text-blue-500" : "bg-gray-500/10 text-gray-400"
+                                                            )}>
+                                                                {adm.role === 'admin' ? <ShieldCheck className="w-5 h-5" /> : <User className="w-5 h-5" />}
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <div className="flex items-center gap-2">
+                                                                    <p className="text-xs font-black text-white truncate">{adm.name}</p>
+                                                                    <span className={cn(
+                                                                        "text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded",
+                                                                        adm.role === 'admin' ? "bg-blue-500/20 text-blue-400" : "bg-white/5 text-gray-500"
+                                                                    )}>
+                                                                        {adm.role}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-[10px] text-gray-500 truncate font-mono">{adm.email}</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex items-center justify-end gap-3 border-t sm:border-0 pt-3 sm:pt-0 border-white/5">
+                                                            {session.user.id !== adm._id ? (
+                                                                <button
+                                                                    onClick={() => handleDeleteUser(adm._id)}
+                                                                    disabled={deleteLoading === adm._id}
+                                                                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/5 text-red-500/40 hover:text-red-500 hover:bg-red-500/10 transition-all text-[10px] font-black uppercase tracking-widest sm:opacity-0 sm:group-hover:opacity-100"
+                                                                >
+                                                                    {deleteLoading === adm._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Trash2 className="w-3.5 h-3.5" /> <span className="sm:hidden lg:inline">Delete Account</span></>}
+                                                                </button>
+                                                            ) : (
+                                                                <span className="text-[8px] font-black uppercase tracking-widest text-blue-500/50 px-3 py-1 bg-blue-500/5 rounded-full ring-1 ring-blue-500/20">Active Session</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
                     </div>
 
                     {/* Sidebar / Danger Zone */}
