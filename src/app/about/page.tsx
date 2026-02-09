@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import {buttonVariants } from '@/components/ui/Button';
+import { buttonVariants } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import Header from '@/components/Header';
@@ -38,7 +38,7 @@ export default function AboutPage() {
                             whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true }}
                             transition={{ duration: 0.5 }}
-                            className="space-y-6"
+                            className="space-y-6 order-2 md:order-1"
                         >
                             <h2 className="text-3xl font-bold text-white">Our Mission</h2>
                             <p className="text-muted-foreground">
@@ -55,7 +55,7 @@ export default function AboutPage() {
                             whileInView={{ opacity: 1, scale: 1 }}
                             viewport={{ once: true }}
                             transition={{ duration: 0.5 }}
-                            className="relative h-[400px] w-full bg-gradient-to-br from-blue-900/20 to-purple-900/20 rounded-2xl border border-white/10 overflow-hidden"
+                            className="relative h-[300px] md:h-[400px] w-full bg-gradient-to-br from-blue-900/20 to-purple-900/20 rounded-2xl border border-white/10 overflow-hidden order-1 md:order-2"
                         >
                             <Image
                                 src="/images/2.png"
