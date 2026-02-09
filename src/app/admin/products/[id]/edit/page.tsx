@@ -9,7 +9,7 @@ import { notFound } from 'next/navigation';
 import ProductCard from '@/components/ProductCard';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { ChevronLeft, Eye } from 'lucide-react';
+import { ChevronLeft, Eye, X } from 'lucide-react';
 
 export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -36,6 +36,8 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         slug: ''
     });
 
+    const [managedImages, setManagedImages] = useState<string[]>([]);
+
     const totalImages = imageCounts.main + imageCounts.additional + imageCounts.urls;
 
     useEffect(() => {
@@ -43,14 +45,27 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             const data = await getProduct(id);
             if (!data) return notFound();
             setProduct(data);
+            const initialImages = data.images || [];
+            setManagedImages(initialImages);
+
+            setPreviewData({
+                title: data.title,
+                category: data.category,
+                price: data.price,
+                discount: data.discount,
+                condition: data.condition,
+                image: initialImages[0] || '',
+                images: initialImages,
+                description: data.description,
+                slug: data.slug
+            });
 
             // Initialize image counts
-            const mainCount = (data.images?.[0] || data.image) ? 1 : 0;
-            const additionalUrls = data.images || [];
+            const mainCount = initialImages[0] ? 1 : 0;
             setImageCounts({
                 main: mainCount,
                 additional: 0,
-                urls: additionalUrls.length
+                urls: initialImages.length
             });
 
             setLoading(false);
@@ -68,9 +83,22 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         }));
 
         if (name === 'images') {
-            const urlCount = value.split(',').map(s => s.trim()).filter(Boolean).length;
-            setImageCounts(prev => ({ ...prev, urls: urlCount }));
+            const urls = value.split(',').map(s => s.trim()).filter(Boolean);
+            setManagedImages(urls);
+            setImageCounts(prev => ({ ...prev, urls: urls.length }));
+            setPreviewData((prev: any) => ({ ...prev, image: urls[0] || '', images: urls }));
         }
+    };
+
+    const removeImage = (indexToRemove: number) => {
+        const updatedImages = managedImages.filter((_, index) => index !== indexToRemove);
+        setManagedImages(updatedImages);
+        setImageCounts(prev => ({ ...prev, urls: updatedImages.length }));
+        setPreviewData((prev: any) => ({
+            ...prev,
+            image: updatedImages[0] || '',
+            images: updatedImages
+        }));
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,12 +108,17 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         if (name === 'imageFile') {
             const file = files[0];
             setImageCounts(prev => ({ ...prev, main: 1 }));
-
-            // Create a preview URL for the selected file
             const objectUrl = URL.createObjectURL(file);
+            setManagedImages(prev => {
+                const newArr = [...prev];
+                newArr[0] = objectUrl;
+                return newArr;
+            });
             setPreviewData((prev: any) => ({ ...prev, image: objectUrl }));
         } else if (name === 'imagesFiles') {
             setImageCounts(prev => ({ ...prev, additional: files.length }));
+            const fileUrls = Array.from(files).map(f => URL.createObjectURL(f));
+            setManagedImages(prev => [...prev, ...fileUrls]);
         }
     };
 
@@ -203,19 +236,66 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                         </div>
 
                         <div className="grid md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-400">Update Main Image</label>
-                                <input name="imageFile" type="file" onChange={handleFileChange} accept="image/*" className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-500/10 file:text-blue-400 hover:file:bg-blue-500/20" />
-                                <p className="text-[10px] text-gray-500 italic truncate">Current: {product.images?.[0] || 'None'}</p>
-                                <input defaultValue={product.images?.[0] || ''} name="image" type="text" onChange={handleInputChange} className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs" placeholder="Or enter URL" />
+                            <div className="space-y-4">
+                                <label className="text-sm font-medium text-gray-400">Main Product Image (Upload or URL)</label>
+                                <div className="space-y-2">
+                                    <input name="imageFile" type="file" onChange={handleFileChange} accept="image/*" className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-500/10 file:text-blue-400 hover:file:bg-blue-500/20" />
+                                    <div className="relative group">
+                                        <input
+                                            value={managedImages[0] || ''}
+                                            name="image"
+                                            type="text"
+                                            onChange={(e) => {
+                                                const newUrl = e.target.value;
+                                                const newImages = [...managedImages];
+                                                newImages[0] = newUrl;
+                                                setManagedImages(newImages.filter(Boolean));
+                                                handleInputChange(e);
+                                            }}
+                                            className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs overflow-x-auto whitespace-nowrap"
+                                            placeholder="https://..."
+                                        />
+                                    </div>
+                                </div>
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-400">Update Gallery Images</label>
-                                <input name="imagesFiles" type="file" onChange={handleFileChange} accept="image/*" multiple className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-500/10 file:text-blue-400 hover:file:bg-blue-500/20" />
-                                <p className="text-[10px] text-gray-500 italic truncate">Separate by comma</p>
-                                <textarea defaultValue={product.images?.join(', ')} name="images" rows={1} onChange={handleInputChange} className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs" placeholder="Or comma-separated URLs" />
+                            <div className="space-y-4">
+                                <label className="text-sm font-medium text-gray-400">Additional Gallery Images (Comma-separated URLs)</label>
+                                <textarea
+                                    value={managedImages.join(', ')}
+                                    name="images"
+                                    rows={3}
+                                    onChange={handleInputChange}
+                                    className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs font-mono scrollbar-thin scrollbar-thumb-white/10"
+                                    placeholder="url1, url2, url3..."
+                                />
                             </div>
                         </div>
+
+                        {/* Visual Image Manager */}
+                        {managedImages.length > 0 && (
+                            <div className="space-y-3">
+                                <label className="text-sm font-medium text-gray-400">Manage Uploaded Images (Select to remove)</label>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                                    {managedImages.map((img, idx) => (
+                                        <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-white/10 group bg-black/40">
+                                            <img src={img} alt={`Product ${idx}`} className="w-full h-full object-cover" />
+                                            {/* Delete Button - Optimized for Mobile & Desktop */}
+                                            <button
+                                                type="button"
+                                                onClick={() => removeImage(idx)}
+                                                className="absolute top-1 right-1 md:inset-0 bg-red-600 md:bg-red-600/60 md:opacity-0 md:group-hover:opacity-100 transition-all flex items-center justify-center text-white p-1.5 md:p-0 rounded-full md:rounded-none shadow-lg md:shadow-none"
+                                                title="Remove Image"
+                                            >
+                                                <X className="w-4 h-4 md:w-6 md:h-6" />
+                                            </button>
+                                            <div className="absolute top-1 left-1 bg-black/60 text-[8px] px-1.5 py-0.5 rounded text-white font-bold">
+                                                {idx === 0 ? 'MAIN' : `GALLERY ${idx}`}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         <div className={cn(
                             "p-3 rounded-lg border text-sm flex justify-between items-center",
