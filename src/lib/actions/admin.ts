@@ -421,10 +421,14 @@ export async function createAdminUser(formData: FormData): Promise<{ success: bo
     }
 }
 
-export async function deleteUser(userId: string): Promise<{ success: boolean; error?: string }> {
+export async function deleteUser(userId: string, adminPassword?: string): Promise<{ success: boolean; error?: string }> {
     const session = await auth();
     if (!session || !session.user.isAdmin) {
         throw new Error('Unauthorized');
+    }
+
+    if (!adminPassword) {
+        throw new Error('Admin password is required for confirmation');
     }
 
     // Prevent deleting self
@@ -433,6 +437,13 @@ export async function deleteUser(userId: string): Promise<{ success: boolean; er
     }
 
     await dbConnect();
+
+    // Check admin's password
+    const adminUser = await User.findById(session.user.id);
+    if (!adminUser || !bcrypt.compareSync(adminPassword, adminUser.password)) {
+        throw new Error('Invalid admin password. Verification failed.');
+    }
+
     try {
         await User.findByIdAndDelete(userId);
         revalidatePath('/profile');

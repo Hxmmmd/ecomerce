@@ -42,6 +42,9 @@ export default function ProfilePage() {
     const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
     const [isListLoading, setIsListLoading] = useState(true);
     const [listError, setListError] = useState('');
+    const [userToDelete, setUserToDelete] = useState<any>(null);
+    const [confirmAdminPassword, setConfirmAdminPassword] = useState('');
+    const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
     useEffect(() => {
         setMounted(true);
@@ -104,23 +107,37 @@ export default function ProfilePage() {
         }
     };
 
-    const handleDeleteUser = async (userId: string) => {
-        if (!confirm('Are you sure you want to remove this account? This action cannot be undone.')) return;
-        setDeleteLoading(userId);
+    const initiateDeleteUser = (user: any) => {
+        setUserToDelete(user);
+        setIsConfirmingDelete(true);
+        setConfirmAdminPassword('');
         setAdminStatus({ success: '', error: '' });
+    };
+
+    const handleConfirmDeleteUser = async () => {
+        if (!userToDelete) return;
+        if (!confirmAdminPassword) {
+            setAdminStatus({ success: '', error: 'Please enter your admin password' });
+            return;
+        }
+
+        setDeleteLoading(userToDelete._id);
+        setIsAdminLoading(true); // Reusing for modal button state
 
         try {
-            const res = await deleteUser(userId);
+            const res = await deleteUser(userToDelete._id, confirmAdminPassword);
             if (res.success) {
-                setAdminStatus({ success: 'User account deleted successfully.', error: '' });
+                setAdminStatus({ success: `Account for ${userToDelete.name} deleted successfully.`, error: '' });
+                setIsConfirmingDelete(false);
                 fetchUsers();
             } else {
-                setAdminStatus({ success: '', error: res.error || 'Failed to delete user' });
+                setAdminStatus({ success: '', error: res.error || 'Verification failed' });
             }
         } catch (err: any) {
-            setAdminStatus({ success: '', error: err.message || 'Failed to delete user' });
+            setAdminStatus({ success: '', error: err.message || 'Verification failed' });
         } finally {
             setDeleteLoading(null);
+            setIsAdminLoading(false);
         }
     };
 
@@ -607,11 +624,10 @@ export default function ProfilePage() {
                                                         <div className="flex items-center justify-end gap-3 border-t sm:border-0 pt-3 sm:pt-0 border-white/5">
                                                             {session.user.id !== adm._id ? (
                                                                 <button
-                                                                    onClick={() => handleDeleteUser(adm._id)}
-                                                                    disabled={deleteLoading === adm._id}
+                                                                    onClick={() => initiateDeleteUser(adm)}
                                                                     className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/5 text-red-500/40 hover:text-red-500 hover:bg-red-500/10 transition-all text-[10px] font-black uppercase tracking-widest sm:opacity-0 sm:group-hover:opacity-100"
                                                                 >
-                                                                    {deleteLoading === adm._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Trash2 className="w-3.5 h-3.5" /> <span className="sm:hidden lg:inline">Delete Account</span></>}
+                                                                    <Trash2 className="w-3.5 h-3.5" /> <span className="sm:hidden lg:inline">Delete Account</span>
                                                                 </button>
                                                             ) : (
                                                                 <span className="text-[8px] font-black uppercase tracking-widest text-blue-500/50 px-3 py-1 bg-blue-500/5 rounded-full ring-1 ring-blue-500/20">Active Session</span>
@@ -626,6 +642,70 @@ export default function ProfilePage() {
                             </motion.div>
                         )}
                     </div>
+
+                    {/* Admin Delete Confirmation Modal */}
+                    {isConfirmingDelete && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="absolute inset-0 bg-black/80 backdrop-blur-xl"
+                                onClick={() => setIsConfirmingDelete(false)}
+                            />
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                className="relative w-full max-w-md bg-[#0A0A0A] border border-white/10 rounded-[2.5rem] p-8 space-y-6 shadow-2xl"
+                            >
+                                <div className="text-center space-y-2">
+                                    <div className="inline-flex p-3 bg-red-500/10 rounded-2xl mb-2">
+                                        <ShieldAlert className="w-6 h-6 text-red-500" />
+                                    </div>
+                                    <h3 className="text-xl font-black text-white tracking-tight">Security Verification</h3>
+                                    <p className="text-gray-400 text-xs">
+                                        You are about to delete <span className="text-white font-bold">{userToDelete?.name}</span>'s account.
+                                        Please enter <span className="text-blue-400">your admin password</span> to confirm.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest pl-1">Your Admin Password</label>
+                                        <input
+                                            type="password"
+                                            value={confirmAdminPassword}
+                                            onChange={(e) => setConfirmAdminPassword(e.target.value)}
+                                            autoFocus
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/50 transition-all text-white"
+                                            placeholder="Enter your password"
+                                        />
+                                    </div>
+
+                                    {adminStatus.error && (
+                                        <p className="text-red-500 text-[10px] font-bold uppercase tracking-widest text-center animate-shake">
+                                            {adminStatus.error}
+                                        </p>
+                                    )}
+
+                                    <div className="flex flex-col gap-3">
+                                        <Button
+                                            onClick={handleConfirmDeleteUser}
+                                            disabled={isAdminLoading}
+                                            className="w-full h-14 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-[0.2em] text-[10px] transition-all"
+                                        >
+                                            {isAdminLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm Deletion'}
+                                        </Button>
+                                        <button
+                                            onClick={() => setIsConfirmingDelete(false)}
+                                            className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white transition-colors py-2"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
 
                     {/* Sidebar / Danger Zone */}
                     <div className="space-y-8">
