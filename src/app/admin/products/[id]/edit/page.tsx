@@ -61,6 +61,7 @@ const compressImage = (file: File): Promise<File> => {
 export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [product, setProduct] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
@@ -162,11 +163,12 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         event.preventDefault();
 
         if (totalImages > 5) {
-            alert(`Maximum 5 images allowed. You have ${totalImages}.`);
+            setError(`Maximum 5 images allowed. You have ${totalImages}.`);
             return;
         }
 
         setSubmitting(true);
+        setError(null);
         try {
             const form = event.currentTarget;
             const formData = new FormData();
@@ -197,8 +199,12 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
 
             await updateProduct(id, formData);
         } catch (error: any) {
+            // Ignore Next.js redirect errors as they are expected
+            if (error.message === 'NEXT_REDIRECT' || error.digest?.includes('NEXT_REDIRECT')) {
+                return;
+            }
             console.error('Submission error:', error);
-            alert(error.message || 'Failed to update product. The images might be too large.');
+            setError(error.message || 'Failed to update product. The images might be too large.');
             setSubmitting(false);
         }
     }
@@ -375,6 +381,16 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                             <p>Total Images In Review: <strong>{totalImages}</strong></p>
                             <p className="text-xs">{totalImages > 5 ? "⚠️ Limit exceeded (Max 5)" : "Max 5 images allowed"}</p>
                         </div>
+
+                        {error && (
+                            <div className="p-4 rounded-lg border bg-red-500/10 border-red-500/50 text-red-400 animate-in slide-in-from-top-2 duration-300">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <AlertCircle className="w-4 h-4" />
+                                    <p className="font-bold text-sm">Update Failed</p>
+                                </div>
+                                <p className="text-xs opacity-90">{error}</p>
+                            </div>
+                        )}
 
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-400">Description (Markdown Supported)</label>
