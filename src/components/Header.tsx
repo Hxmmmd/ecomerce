@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { ShoppingCart, Menu, X, User, LogOut, Package, ArrowLeft } from 'lucide-react';
-import { useState,  useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { Button, buttonVariants } from '@/components/ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -176,7 +176,7 @@ export default function Header() {
                             animate={{ x: 0 }}
                             exit={{ x: '-100%' }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="md:hidden fixed inset-y-0 left-0 z-[60] w-[80%] max-w-sm bg-black/95 backdrop-blur-xl border-r border-white/10 shadow-2xl flex flex-col"
+                            className="md:hidden fixed inset-y-0 left-0 z-[60] w-[80%] max-w-sm bg-black/60 backdrop-blur-md supports-[backdrop-filter]:bg-black/30 border-r border-white/10 shadow-2xl flex flex-col"
                         >
                             {/* Menu Header */}
                             <div className="flex items-center justify-between p-6 border-b border-white/5">

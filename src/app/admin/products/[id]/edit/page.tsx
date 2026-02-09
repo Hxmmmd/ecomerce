@@ -78,16 +78,16 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     if (!product) return notFound();
 
     return (
-        <div className="max-w-6xl mx-auto space-y-8 pb-20">
-            <div className="flex items-center gap-4">
-                <Link href="/admin" className={cn(buttonVariants('ghost', 'icon'))}>
-                    <ChevronLeft className="w-4 h-4" />
+        <div className="max-w-6xl mx-auto space-y-6 md:space-y-8 pb-20 px-4 md:px-0">
+            <div className="flex items-center gap-2 md:gap-4 mt-4 md:mt-0">
+                <Link href="/admin" className={cn(buttonVariants('ghost', 'icon'), "h-9 w-9 md:h-10 md:w-10")}>
+                    <ChevronLeft className="w-5 h-5" />
                 </Link>
-                <h1 className="text-3xl font-bold text-white">Edit Product</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-white">Edit Product</h1>
             </div>
 
             <div className="grid lg:grid-cols-[1fr_380px] gap-8 items-start">
-                <form onSubmit={handleSubmit} className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 space-y-6 shadow-2xl">
+                <form onSubmit={handleSubmit} className="bg-white/5 border border-white/10 rounded-2xl p-5 md:p-8 space-y-6 shadow-2xl">
                     <div className="grid md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-400">Title</label>

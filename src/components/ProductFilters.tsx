@@ -221,7 +221,7 @@ export default function ProductFilters() {
                             animate={{ x: 0 }}
                             exit={{ x: '-100%' }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="lg:hidden fixed inset-y-0 left-0 z-[60] w-[80%] md:w-[40%] bg-black/95 border-r border-white/10 p-5 shadow-2xl flex flex-col pt-20"
+                            className="lg:hidden fixed inset-y-0 left-0 z-[60] w-[80%] md:w-[40%] bg-black/60 backdrop-blur-md supports-[backdrop-filter]:bg-black/30 border-r border-white/10 p-5 shadow-2xl flex flex-col pt-20"
                         >
                             <div className="flex items-center justify-between mb-6 pb-3 border-b border-white/5">
                                 <span className="text-white font-bold text-sm flex items-center gap-2">
