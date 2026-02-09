@@ -9,6 +9,8 @@ import Image from 'next/image';
 import ProductGallery from '@/components/ProductGallery';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import BuyNowButton from '@/components/BuyNowButton';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export const dynamic = 'force-dynamic';
 
@@ -101,7 +103,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
                         <div className="prose prose-invert max-w-none pt-4 border-t border-white/5">
                             <h3 className="text-[10px] font-black uppercase text-gray-500 tracking-widest mb-4">Description</h3>
-                            <p className="text-muted-foreground leading-relaxed font-medium">{product.description}</p>
+                            <div className="text-muted-foreground leading-relaxed font-medium">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                    {product.description || ''}
+                                </ReactMarkdown>
+                            </div>
                         </div>
                     </div>
                 </div>
