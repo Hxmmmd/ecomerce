@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ShoppingCart, Menu, X, User, LogOut, Package, ArrowLeft } from 'lucide-react';
+import { ShoppingCart, Menu, X, User, LogOut, Package, ArrowLeft, Search as SearchIcon } from 'lucide-react';
 import { useState, useMemo, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Button, buttonVariants } from '@/components/ui/Button';
@@ -17,6 +17,7 @@ export default function Header() {
     const { items } = useCart();
     const { data: session, status } = useSession();
     const [isOpen, setIsOpen] = useState(false);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
     const pathname = usePathname();
     const router = useRouter();
     const { openAuthModal } = useAuthModal();
@@ -138,6 +139,18 @@ export default function Header() {
                             <Button
                                 variant="ghost"
                                 size="icon"
+                                onClick={() => setIsSearchOpen(!isSearchOpen)}
+                                className={cn("text-gray-400 hover:text-white transition-colors", isSearchOpen && "text-blue-500")}
+                            >
+                                <SearchIcon className="h-5 w-5" />
+                                <span className="sr-only">Search</span>
+                            </Button>
+                        </div>
+
+                        <div className="md:hidden">
+                            <Button
+                                variant="ghost"
+                                size="icon"
                                 onClick={() => setIsOpen(true)}
                                 className="text-gray-400 hover:text-white"
                             >
@@ -148,12 +161,22 @@ export default function Header() {
                 </div>
             </div>
 
-            {/* Mobile search */}
-            {!isAdmin && (
-                <div className="md:hidden px-4 pb-3">
-                    <Search />
-                </div>
-            )}
+            {/* Mobile Search - Toggleable */}
+            <AnimatePresence>
+                {isSearchOpen && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="md:hidden border-t border-white/5 bg-[#09090b] overflow-hidden"
+                    >
+                        <div className="px-4 py-3">
+                            <Search isAdmin={isAdmin} />
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <AnimatePresence>
                 {isOpen && (
