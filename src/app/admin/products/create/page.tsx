@@ -23,6 +23,7 @@ export default function CreateProductPage() {
         category: '',
         price: 0,
         discount: 0,
+        stock: 0,
         condition: 'New' as 'New' | 'Used',
         image: '',
         images: [] as string[],
@@ -378,7 +379,7 @@ export default function CreateProductPage() {
                                             images: previewData.image ? [previewData.image] : ['/images/placeholder.jpg'],
                                             rating: 0,
                                             numReviews: 0,
-                                            stock: 0,
+                                            stock: previewData.stock || 0,
                                         }}
                                     />
                                 </div>
