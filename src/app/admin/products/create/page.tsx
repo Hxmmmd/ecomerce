@@ -149,9 +149,9 @@ export default function CreateProductPage() {
                 </button>
             </div>
 
-            <div className="min-h-[600px]">
-                {/* Form Side */}
-                {activeTab === 'edit' && (
+            <div className="min-h-[600px] relative">
+                {/* Form Side - Kept mounted to prevent state loss */}
+                <div className={cn(activeTab !== 'edit' && "hidden")}>
                     <form onSubmit={handleSubmit} className="bg-white/5 border border-white/10 rounded-2xl p-6 md:p-8 space-y-6 animate-in fade-in duration-300">
                         <div className="grid md:grid-cols-2 gap-6">
                             <div className="space-y-2">
@@ -172,6 +172,7 @@ export default function CreateProductPage() {
                                     name="category"
                                     required
                                     type="text"
+                                    value={previewData.category}
                                     onChange={handleInputChange}
                                     className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     placeholder="e.g. Laptops"
@@ -187,6 +188,7 @@ export default function CreateProductPage() {
                                     required
                                     type="number"
                                     step="0.01"
+                                    value={previewData.price || ''}
                                     onChange={handleInputChange}
                                     className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     placeholder="99.99"
@@ -198,6 +200,7 @@ export default function CreateProductPage() {
                                     name="discount"
                                     type="number"
                                     step="1"
+                                    value={previewData.discount || ''}
                                     onChange={handleInputChange}
                                     className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     placeholder="0"
@@ -219,7 +222,15 @@ export default function CreateProductPage() {
                         <div className="grid md:grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-gray-400">Stock</label>
-                                <input name="stock" required type="number" className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="0" />
+                                <input
+                                    name="stock"
+                                    required
+                                    type="number"
+                                    value={previewData.stock || ''}
+                                    onChange={handleInputChange}
+                                    className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="0"
+                                />
                             </div>
                             <div className="space-y-3">
                                 <label className="text-sm font-medium text-gray-400">Condition</label>
@@ -229,7 +240,7 @@ export default function CreateProductPage() {
                                             type="radio"
                                             name="condition"
                                             value="New"
-                                            defaultChecked
+                                            checked={previewData.condition === 'New'}
                                             onChange={handleInputChange}
                                             className="w-4 h-4 text-blue-500 bg-black/20 border-white/10 focus:ring-blue-500 focus:ring-offset-black"
                                         />
@@ -240,6 +251,7 @@ export default function CreateProductPage() {
                                             type="radio"
                                             name="condition"
                                             value="Used"
+                                            checked={previewData.condition === 'Used'}
                                             onChange={handleInputChange}
                                             className="w-4 h-4 text-orange-500 bg-black/20 border-white/10 focus:ring-orange-500 focus:ring-offset-black"
                                         />
@@ -330,6 +342,7 @@ export default function CreateProductPage() {
                                 name="description"
                                 required
                                 rows={8}
+                                value={previewData.description}
                                 onChange={handleInputChange}
                                 className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                                 placeholder="Use Markdown: **bold**, - lists, # headings..."
@@ -345,10 +358,10 @@ export default function CreateProductPage() {
                             </Button>
                         </div>
                     </form>
-                )}
+                </div>
 
                 {/* Preview Tab */}
-                {activeTab === 'preview' && (
+                <div className={cn(activeTab !== 'preview' && "hidden")}>
                     <div className="grid lg:grid-cols-[350px_1fr] gap-8 items-start animate-in zoom-in-95 duration-300">
                         <div className="space-y-6">
                             <div className="flex items-center gap-2 text-white font-bold text-sm px-2">
@@ -393,7 +406,7 @@ export default function CreateProductPage() {
                             </div>
                         </div>
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );

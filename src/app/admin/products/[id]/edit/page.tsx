@@ -168,29 +168,29 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 </button>
             </div>
 
-            <div className="min-h-[600px]">
-                {/* Form Side */}
-                {activeTab === 'edit' && (
+            <div className="min-h-[600px] relative">
+                {/* Form Side - Kept mounted to prevent state loss */}
+                <div className={cn(activeTab !== 'edit' && "hidden")}>
                     <form onSubmit={handleSubmit} className="bg-white/5 border border-white/10 rounded-2xl p-5 md:p-8 space-y-6 shadow-2xl animate-in fade-in duration-300">
                         <div className="grid md:grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-gray-400">Title</label>
-                                <input defaultValue={product.title} name="title" required type="text" onChange={handleInputChange} className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                <input value={previewData.title} name="title" required type="text" onChange={handleInputChange} className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-gray-400">Category</label>
-                                <input defaultValue={product.category} name="category" required type="text" onChange={handleInputChange} className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                <input value={previewData.category} name="category" required type="text" onChange={handleInputChange} className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
                             </div>
                         </div>
 
                         <div className="grid md:grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-gray-400">Price ($)</label>
-                                <input defaultValue={product.price} name="price" required type="number" step="0.01" onChange={handleInputChange} className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                <input value={previewData.price} name="price" required type="number" step="0.01" onChange={handleInputChange} className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-gray-400">Discount (%)</label>
-                                <input defaultValue={product.discount} name="discount" type="number" step="1" onChange={handleInputChange} className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                <input value={previewData.discount} name="discount" type="number" step="1" onChange={handleInputChange} className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
                             </div>
                         </div>
 
@@ -218,17 +218,17 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                         <div className="grid md:grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-gray-400">Stock</label>
-                                <input defaultValue={product.stock} name="stock" required type="number" onChange={handleInputChange} className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                <input value={previewData.stock} name="stock" required type="number" onChange={handleInputChange} className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
                             </div>
                             <div className="space-y-3">
                                 <label className="text-sm font-medium text-gray-400">Condition</label>
                                 <div className="flex items-center space-x-6 h-12">
                                     <label className="flex items-center space-x-2 cursor-pointer group">
-                                        <input type="radio" name="condition" value="New" defaultChecked={product.condition === 'New'} onChange={handleInputChange} className="w-4 h-4 text-blue-500 bg-black/20 border-white/10 focus:ring-blue-500 focus:ring-offset-black" />
+                                        <input type="radio" name="condition" value="New" checked={previewData.condition === 'New'} onChange={handleInputChange} className="w-4 h-4 text-blue-500 bg-black/20 border-white/10 focus:ring-blue-500 focus:ring-offset-black" />
                                         <span className="text-white group-hover:text-blue-400 transition-colors">New Laptop</span>
                                     </label>
                                     <label className="flex items-center space-x-2 cursor-pointer group">
-                                        <input type="radio" name="condition" value="Used" defaultChecked={product.condition === 'Used'} onChange={handleInputChange} className="w-4 h-4 text-orange-500 bg-black/20 border-white/10 focus:ring-orange-500 focus:ring-offset-black" />
+                                        <input type="radio" name="condition" value="Used" checked={previewData.condition === 'Used'} onChange={handleInputChange} className="w-4 h-4 text-orange-500 bg-black/20 border-white/10 focus:ring-orange-500 focus:ring-offset-black" />
                                         <span className="text-white group-hover:text-orange-400 transition-colors">Used Laptop</span>
                                     </label>
                                 </div>
@@ -308,7 +308,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-400">Description (Markdown Supported)</label>
                             <textarea
-                                defaultValue={product.description}
+                                value={previewData.description}
                                 name="description"
                                 required
                                 rows={8}
@@ -326,10 +326,10 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                             </Button>
                         </div>
                     </form>
-                )}
+                </div>
 
                 {/* Preview Tab */}
-                {activeTab === 'preview' && (
+                <div className={cn(activeTab !== 'preview' && "hidden")}>
                     <div className="grid lg:grid-cols-[350px_1fr] gap-8 items-start animate-in zoom-in-95 duration-300 px-4 md:px-0 mt-6">
                         <div className="space-y-6">
                             <div className="flex items-center gap-2 text-white font-bold text-sm px-2">
@@ -374,7 +374,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                             </div>
                         </div>
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );
