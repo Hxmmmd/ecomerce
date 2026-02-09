@@ -5,7 +5,53 @@ import { Button, buttonVariants } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, Eye, X } from 'lucide-react';
+import { ChevronLeft, Eye, X, ImageIcon, AlertCircle } from 'lucide-react';
+
+const compressImage = (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target?.result as string;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                const MAX_SIZE = 1200;
+                if (width > height) {
+                    if (width > MAX_SIZE) {
+                        height *= MAX_SIZE / width;
+                        width = MAX_SIZE;
+                    }
+                } else {
+                    if (height > MAX_SIZE) {
+                        width *= MAX_SIZE / height;
+                        height = MAX_SIZE;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx?.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        const compressedFile = new File([blob], file.name, {
+                            type: 'image/jpeg',
+                            lastModified: Date.now(),
+                        });
+                        resolve(compressedFile);
+                    } else {
+                        resolve(file);
+                    }
+                }, 'image/jpeg', 0.8);
+            };
+        };
+    });
+};
 import { useRouter } from 'next/navigation';
 import ProductCard from '@/components/ProductCard';
 import ReactMarkdown from 'react-markdown';
@@ -32,14 +78,7 @@ export default function CreateProductPage() {
     });
 
     const [managedImages, setManagedImages] = useState<string[]>([]);
-
-    const [imageCounts, setImageCounts] = useState({
-        main: 0,
-        additional: 0,
-        urls: 0
-    });
-
-    const totalImages = imageCounts.main + imageCounts.additional + imageCounts.urls;
+    const totalImages = managedImages.length;
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
@@ -51,7 +90,6 @@ export default function CreateProductPage() {
         if (name === 'images') {
             const urls = value.split(',').map(s => s.trim()).filter(Boolean);
             setManagedImages(urls);
-            setImageCounts(prev => ({ ...prev, urls: urls.length }));
             setPreviewData(prev => ({ ...prev, image: urls[0] || '', images: urls }));
         }
     };
@@ -59,7 +97,6 @@ export default function CreateProductPage() {
     const removeImage = (indexToRemove: number) => {
         const updatedImages = managedImages.filter((_, index) => index !== indexToRemove);
         setManagedImages(updatedImages);
-        setImageCounts(prev => ({ ...prev, urls: updatedImages.length }));
         setPreviewData(prev => ({
             ...prev,
             image: updatedImages[0] || '',
@@ -71,19 +108,21 @@ export default function CreateProductPage() {
         const { name, files } = e.target;
         if (!files || files.length === 0) return;
 
+        const fileArray = Array.from(files);
+        const fileUrls = fileArray.map(f => URL.createObjectURL(f));
+
         if (name === 'imageFile') {
-            const file = files[0];
-            setImageCounts(prev => ({ ...prev, main: 1 }));
-            const objectUrl = URL.createObjectURL(file);
             setManagedImages(prev => {
                 const newArr = [...prev];
-                newArr[0] = objectUrl;
+                if (newArr.length > 0) {
+                    newArr[0] = fileUrls[0];
+                } else {
+                    newArr.push(fileUrls[0]);
+                }
                 return newArr;
             });
-            setPreviewData(prev => ({ ...prev, image: objectUrl }));
+            setPreviewData(prev => ({ ...prev, image: fileUrls[0] }));
         } else if (name === 'imagesFiles') {
-            setImageCounts(prev => ({ ...prev, additional: files.length }));
-            const fileUrls = Array.from(files).map(f => URL.createObjectURL(f));
             setManagedImages(prev => [...prev, ...fileUrls]);
         }
     };
@@ -99,7 +138,33 @@ export default function CreateProductPage() {
 
         setSubmitting(true);
         try {
-            const formData = new FormData(event.currentTarget);
+            const form = event.currentTarget;
+            const formData = new FormData();
+
+            // Append non-file entries
+            const entries = new FormData(form).entries();
+            for (const [key, value] of Array.from(entries)) {
+                if (!(value instanceof File)) {
+                    formData.append(key, value);
+                }
+            }
+
+            // Compressed Main Image
+            const mainFile = (form.querySelector('input[name="imageFile"]') as HTMLInputElement)?.files?.[0];
+            if (mainFile) {
+                const compressed = await compressImage(mainFile);
+                formData.append('imageFile', compressed);
+            }
+
+            // Compressed Additional Images
+            const additionalFiles = (form.querySelector('input[name="imagesFiles"]') as HTMLInputElement)?.files;
+            if (additionalFiles) {
+                for (const file of Array.from(additionalFiles)) {
+                    const compressed = await compressImage(file);
+                    formData.append('imagesFiles', compressed);
+                }
+            }
+
             const result = await createProduct(formData);
 
             // If result is returned (error case), handle it
@@ -286,10 +351,13 @@ export default function CreateProductPage() {
                             <div className="space-y-4">
                                 <label className="text-sm font-medium text-gray-400">Additional Gallery Images (Comma URLs)</label>
                                 <textarea
-                                    value={managedImages.join(', ')}
+                                    value={managedImages.slice(1).join(', ')}
                                     name="images"
                                     rows={3}
-                                    onChange={handleInputChange}
+                                    onChange={(e) => {
+                                        const urls = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                                        setManagedImages([managedImages[0], ...urls].filter(Boolean));
+                                    }}
                                     className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs font-mono scrollbar-thin scrollbar-thumb-white/10"
                                     placeholder="url1, url2, url3..."
                                 />

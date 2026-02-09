@@ -9,7 +9,54 @@ import { notFound } from 'next/navigation';
 import ProductCard from '@/components/ProductCard';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { ChevronLeft, Eye, X } from 'lucide-react';
+import { ChevronLeft, Eye, X, ImageIcon, AlertCircle } from 'lucide-react';
+
+const compressImage = (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target?.result as string;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                // Max dimensions 1200px
+                const MAX_SIZE = 1200;
+                if (width > height) {
+                    if (width > MAX_SIZE) {
+                        height *= MAX_SIZE / width;
+                        width = MAX_SIZE;
+                    }
+                } else {
+                    if (height > MAX_SIZE) {
+                        width *= MAX_SIZE / height;
+                        height = MAX_SIZE;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx?.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        const compressedFile = new File([blob], file.name, {
+                            type: 'image/jpeg',
+                            lastModified: Date.now(),
+                        });
+                        resolve(compressedFile);
+                    } else {
+                        resolve(file);
+                    }
+                }, 'image/jpeg', 0.8); // 80% quality
+            };
+        };
+    });
+};
 
 export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -18,11 +65,8 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
 
-    const [imageCounts, setImageCounts] = useState({
-        main: 0,
-        additional: 0,
-        urls: 0
-    });
+    const [managedImages, setManagedImages] = useState<string[]>([]);
+    const totalImages = managedImages.length;
 
     const [previewData, setPreviewData] = useState<any>({
         title: '',
@@ -36,10 +80,6 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         description: '',
         slug: ''
     });
-
-    const [managedImages, setManagedImages] = useState<string[]>([]);
-
-    const totalImages = imageCounts.main + imageCounts.additional + imageCounts.urls;
 
     useEffect(() => {
         async function fetchProduct() {
@@ -62,14 +102,6 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 slug: data.slug
             });
 
-            // Initialize image counts
-            const mainCount = initialImages[0] ? 1 : 0;
-            setImageCounts({
-                main: mainCount,
-                additional: 0,
-                urls: initialImages.length
-            });
-
             setLoading(false);
         }
         fetchProduct();
@@ -87,7 +119,6 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         if (name === 'images') {
             const urls = value.split(',').map(s => s.trim()).filter(Boolean);
             setManagedImages(urls);
-            setImageCounts(prev => ({ ...prev, urls: urls.length }));
             setPreviewData((prev: any) => ({ ...prev, image: urls[0] || '', images: urls }));
         }
     };
@@ -95,7 +126,6 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     const removeImage = (indexToRemove: number) => {
         const updatedImages = managedImages.filter((_, index) => index !== indexToRemove);
         setManagedImages(updatedImages);
-        setImageCounts(prev => ({ ...prev, urls: updatedImages.length }));
         setPreviewData((prev: any) => ({
             ...prev,
             image: updatedImages[0] || '',
@@ -107,19 +137,23 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         const { name, files } = e.target;
         if (!files || files.length === 0) return;
 
+        const fileArray = Array.from(files);
+
+        // Helper to convert file to object URL
+        const fileUrls = fileArray.map(f => URL.createObjectURL(f));
+
         if (name === 'imageFile') {
-            const file = files[0];
-            setImageCounts(prev => ({ ...prev, main: 1 }));
-            const objectUrl = URL.createObjectURL(file);
             setManagedImages(prev => {
                 const newArr = [...prev];
-                newArr[0] = objectUrl;
+                if (newArr.length > 0) {
+                    newArr[0] = fileUrls[0];
+                } else {
+                    newArr.push(fileUrls[0]);
+                }
                 return newArr;
             });
-            setPreviewData((prev: any) => ({ ...prev, image: objectUrl }));
+            setPreviewData((prev: any) => ({ ...prev, image: fileUrls[0] }));
         } else if (name === 'imagesFiles') {
-            setImageCounts(prev => ({ ...prev, additional: files.length }));
-            const fileUrls = Array.from(files).map(f => URL.createObjectURL(f));
             setManagedImages(prev => [...prev, ...fileUrls]);
         }
     };
@@ -133,8 +167,40 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         }
 
         setSubmitting(true);
-        const formData = new FormData(event.currentTarget);
-        await updateProduct(id, formData);
+        try {
+            const form = event.currentTarget;
+            const formData = new FormData();
+
+            // Append all non-file fields
+            const entries = new FormData(form).entries();
+            for (const [key, value] of Array.from(entries)) {
+                if (!(value instanceof File)) {
+                    formData.append(key, value);
+                }
+            }
+
+            // Handle Main Image File
+            const mainFile = (form.querySelector('input[name="imageFile"]') as HTMLInputElement)?.files?.[0];
+            if (mainFile) {
+                const compressed = await compressImage(mainFile);
+                formData.append('imageFile', compressed);
+            }
+
+            // Handle Additional Image Files
+            const additionalFiles = (form.querySelector('input[name="imagesFiles"]') as HTMLInputElement)?.files;
+            if (additionalFiles) {
+                for (const file of Array.from(additionalFiles)) {
+                    const compressed = await compressImage(file);
+                    formData.append('imagesFiles', compressed);
+                }
+            }
+
+            await updateProduct(id, formData);
+        } catch (error: any) {
+            console.error('Submission error:', error);
+            alert(error.message || 'Failed to update product. The images might be too large.');
+            setSubmitting(false);
+        }
     }
 
     if (loading) return <div className="p-8 text-center text-gray-400">Loading product data...</div>;
@@ -263,10 +329,13 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                             <div className="space-y-4">
                                 <label className="text-sm font-medium text-gray-400">Additional Gallery Images (Comma-separated URLs)</label>
                                 <textarea
-                                    value={managedImages.join(', ')}
+                                    value={managedImages.slice(1).join(', ')}
                                     name="images"
                                     rows={3}
-                                    onChange={handleInputChange}
+                                    onChange={(e) => {
+                                        const urls = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                                        setManagedImages([managedImages[0], ...urls].filter(Boolean));
+                                    }}
                                     className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs font-mono scrollbar-thin scrollbar-thumb-white/10"
                                     placeholder="url1, url2, url3..."
                                 />

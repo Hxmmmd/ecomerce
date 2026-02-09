@@ -96,40 +96,41 @@ export async function createProduct(formData: FormData) {
         const condition = formData.get('condition') as string;
 
         const mainImageFile = formData.get('imageFile') as File;
+        const additionalImageFiles = formData.getAll('imagesFiles') as File[];
         let image = formData.get('image') as string;
 
         if (mainImageFile && mainImageFile.size > 0) {
             console.log('Converting main image to Base64...');
-            // Check size (max 4MB for DB safety)
             if (mainImageFile.size > 4 * 1024 * 1024) throw new Error("Main image too large (max 4MB)");
             image = await fileToBase64(mainImageFile);
         }
 
-        const additionalImageFiles = formData.getAll('imagesFiles') as File[];
-        let images = (formData.get('images') as string || '').split(',').map(s => s.trim()).filter(Boolean);
+        // Create a unique set of images
+        let finalImages: string[] = [];
 
+        // 1. Start with images from the textarea (existing URLs or Base64s)
+        const existingImagesFromForm = (formData.get('images') as string || '').split(',').map(s => s.trim()).filter(Boolean);
+        finalImages = [...existingImagesFromForm];
+
+        // 2. Add main image if provided (URL or Base64)
+        if (image) {
+            finalImages = [image, ...finalImages];
+        }
+
+        // 3. Add any newly uploaded additional files
         if (additionalImageFiles && additionalImageFiles.length > 0) {
             for (const file of additionalImageFiles) {
                 if (file.size > 0) {
                     console.log('Converting additional image to Base64...');
                     if (file.size > 4 * 1024 * 1024) throw new Error(`Image ${file.name} too large (max 4MB)`);
                     const base64 = await fileToBase64(file);
-                    images.push(base64);
+                    finalImages.push(base64);
                 }
             }
         }
 
-        // Add main image to images array if available
-        if (image) {
-            images = [image, ...images];
-        }
-
-        // Ensure unique images and limit to 5
-        images = [...new Set(images)];
-
-        if (images.length > 5) {
-            return { success: false, error: 'Maximum 5 images allowed per product.' };
-        }
+        // Final deduplication and limit
+        finalImages = [...new Set(finalImages)].slice(0, 5);
 
         const slug = title.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
 
@@ -139,7 +140,7 @@ export async function createProduct(formData: FormData) {
             price,
             discount,
             discountExpiry,
-            images,
+            images: finalImages,
             category,
             description,
             stock,
@@ -173,6 +174,7 @@ export async function updateProduct(id: string, formData: FormData) {
         const condition = formData.get('condition') as string;
 
         const mainImageFile = formData.get('imageFile') as File;
+        const additionalImageFiles = formData.getAll('imagesFiles') as File[];
         let image = formData.get('image') as string;
 
         if (mainImageFile && mainImageFile.size > 0) {
@@ -180,37 +182,38 @@ export async function updateProduct(id: string, formData: FormData) {
             image = await fileToBase64(mainImageFile);
         }
 
-        const additionalImageFiles = formData.getAll('imagesFiles') as File[];
-        let images = (formData.get('images') as string || '').split(',').map(s => s.trim()).filter(Boolean);
+        // Create a unique set of images
+        let finalImages: string[] = [];
 
+        // 1. Start with images from the textarea (existing URLs or Base64s)
+        const existingImagesFromForm = (formData.get('images') as string || '').split(',').map(s => s.trim()).filter(Boolean);
+        finalImages = [...existingImagesFromForm];
+
+        // 2. Add main image if provided (URL or Base64)
+        if (image) {
+            finalImages = [image, ...finalImages];
+        }
+
+        // 3. Add any newly uploaded additional files
         if (additionalImageFiles && additionalImageFiles.length > 0) {
             for (const file of additionalImageFiles) {
                 if (file.size > 0) {
                     if (file.size > 4 * 1024 * 1024) throw new Error(`Image ${file.name} too large (max 4MB)`);
                     const base64 = await fileToBase64(file);
-                    images.push(base64);
+                    finalImages.push(base64);
                 }
             }
         }
 
-        // Add main image to images array if available
-        if (image) {
-            images = [image, ...images];
-        }
-
-        // Ensure unique images and limit to 5
-        images = [...new Set(images)];
-
-        if (images.length > 5) {
-            throw new Error('Maximum 5 images allowed per product.');
-        }
+        // Final deduplication and limit
+        finalImages = [...new Set(finalImages)].slice(0, 5);
 
         await Product.findByIdAndUpdate(id, {
             title,
             price,
             discount,
             discountExpiry,
-            images,
+            images: finalImages,
             category,
             description,
             stock,
