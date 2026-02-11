@@ -129,9 +129,10 @@ export default function Header() {
                             <Button
                                 variant="ghost"
                                 onClick={() => openAuthModal('selection')}
-                                className="text-gray-400 hover:text-white"
+                                className="text-gray-400 hover:text-white px-2 sm:px-4"
                             >
-                                <User className="h-5 w-5" /> <span className="hidden sm:inline">Login</span>
+                                <User className="h-5 w-5 sm:mr-2" />
+                                <span className="text-sm font-semibold">Login</span>
                             </Button>
                         )}
 
@@ -258,7 +259,7 @@ export default function Header() {
                             </div>
 
                             {status === 'authenticated' && (
-                                <div className="border-t border-white/5 p-4">
+                                <div className="border-t border-white/5 p-4 pb-12 sm:pb-8">
                                     <p className="text-sm text-white font-semibold truncate">{session?.user?.name}</p>
                                     <p className="text-xs text-gray-500 truncate">{session?.user?.email}</p>
                                     <Button
